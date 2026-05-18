@@ -14,6 +14,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "union-webapp",
   "compatibility_date": "2026-05-18",
+  // unionwith.app is the canonical URL (Workers Custom Domain bound
+  // 2026-05-18). Disable the `*.workers.dev` subdomain and per-deploy
+  // preview URLs so traffic only flows through the custom domain;
+  // also prevents accidental discovery / indexing of the deploy URL.
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "./dist"
   }
