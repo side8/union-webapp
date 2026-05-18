@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Union design tokens — mirror the native app's tailwind.config.js.
+   When the app's tokens evolve, update them here too. */
+@theme {
+  --color-union-cream: #FAF7F2;
+  --color-union-charcoal: #2C2416;
+  --color-union-secondary: #8C7B6B;
+  --color-union-gold: #C4972A;
+  --color-union-gold-bg: #FBF5E6;
+  --color-union-border: #DDD5C8;
+
+  --font-wordmark: "Cormorant Garamond", serif;
+  --font-prayer: "EB Garamond", serif;
+  --font-ui: "Inter", "system-ui", sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-union-cream);
+    color: var(--color-union-charcoal);
+    font-family: var(--font-ui);
+  }
+  body {
+    margin: 0;
+  }
+}

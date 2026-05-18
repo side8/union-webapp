@@ -1,0 +1,153 @@
+---
+import Layout from '../layouts/Layout.astro'
+
+const lastUpdated = '18 May 2026'
+---
+
+<Layout
+  title="Privacy"
+  description="Union's privacy promise: what we collect, where it goes, what's never shared."
+>
+  <article class="prose-union">
+    <h1 class="font-prayer text-5xl text-union-charcoal">Privacy</h1>
+    <p class="mt-2 text-sm text-union-secondary">
+      Last updated: {lastUpdated}
+    </p>
+
+    <p class="mt-8 text-lg leading-relaxed">
+      This page explains exactly what data Union collects, where it
+      lives, who else sees it, and how to delete it. If anything here is
+      unclear, email
+      <a class="text-union-gold underline" href="mailto:hello@side8.io"
+      >hello@side8.io</a>.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      The promise
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      What you share in Union is yours. We don&apos;t sell it. We
+      don&apos;t share it. We don&apos;t use it to train AI models.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      What we collect
+    </h2>
+    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
+      <li>
+        <strong>Account details</strong> — your email address (for
+        sign-in) and, if you set one, a name to greet you by.
+      </li>
+      <li>
+        <strong>Check-ins</strong> — the free-text descriptions you
+        write to find a prayer.
+      </li>
+      <li>
+        <strong>Saved prayers and reflections</strong> — the prayers
+        you bookmark to your journal, any reflections you write
+        alongside them, and any &ldquo;answered&rdquo; notes you add.
+      </li>
+      <li>
+        <strong>Profile preferences</strong> — optional fields like your
+        Christian tradition or season of life, used to make the
+        prayers Union suggests fit you better.
+      </li>
+    </ul>
+    <p class="mt-4 text-lg leading-relaxed">
+      We do not collect device identifiers, location, contacts,
+      photos, advertising IDs, or analytics about how you use the app.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Where it lives
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      Everything you create in Union is stored in our Supabase
+      project, hosted in the EU. Database rows are scoped to your
+      account via row-level security — only you (signed in) and
+      Union&apos;s own server can read them.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      The AI vendors
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      When you tell Union what&apos;s on your heart, your check-in
+      text is sent to two AI providers so we can find prayers that
+      match it:
+    </p>
+    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
+      <li>
+        <strong>OpenAI</strong> — receives your check-in text to
+        compute an embedding (a numeric fingerprint used to find
+        similar prayers in our corpus).
+      </li>
+      <li>
+        <strong>Anthropic</strong> — receives your check-in text plus a
+        short list of candidate prayers, and chooses which fit best
+        plus writes a brief pastoral note.
+      </li>
+    </ul>
+    <p class="mt-4 text-lg leading-relaxed">
+      We deliberately do <em>not</em> send your name, email, or any
+      other identifier with these calls. The vendors see content but
+      cannot link it back to your Union account.
+    </p>
+    <p class="mt-4 text-lg leading-relaxed">
+      Both vendors, on their standard API tier, retain the request
+      payload for up to 30 days for abuse-monitoring purposes and
+      then delete it. Neither uses API data to train their models.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Your rights
+    </h2>
+    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
+      <li>
+        <strong>See your data</strong> — everything Union holds about
+        you is visible inside the app: your name in Settings, your
+        check-ins on Home, your saved prayers in the Journal.
+      </li>
+      <li>
+        <strong>Delete your account</strong> — Settings → Delete
+        account. Type <code>delete</code> to confirm. This removes
+        your account row, every check-in, every saved prayer and
+        reflection, and every related row across our database, in a
+        single transaction.
+      </li>
+      <li>
+        <strong>Vendor copies</strong> — the brief retention windows at
+        OpenAI and Anthropic age out on their own. We cannot force an
+        instant deletion at those vendors but the windows are short
+        (≤30 days) and bounded.
+      </li>
+    </ul>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Children
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      Union is not directed at children under 13. If you believe a
+      child has signed up, email us and we&apos;ll delete the account.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Changes
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      If we change anything material on this page, we&apos;ll update
+      the &ldquo;last updated&rdquo; date above and surface a notice in
+      the app for at least a week.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Contact
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      Privacy questions, deletion confirmations, or anything else
+      —
+      <a class="text-union-gold underline" href="mailto:hello@side8.io"
+      >hello@side8.io</a>.
+    </p>
+  </article>
+</Layout>
