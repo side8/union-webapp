@@ -1,0 +1,20 @@
+{
+  // Cloudflare Workers config for deploying the Astro static build via
+  // Workers with Static Assets (the "Workers Builds" path that replaces
+  // classic Pages on new projects).
+  //
+  // Build chain:
+  //   Cloudflare runs `npm run build` → outputs ./dist → deploy command
+  //   `npx wrangler deploy` reads this file, uploads ./dist to Cloudflare
+  //   Workers Static Assets, no JS runtime needed.
+  //
+  // If we ever need server-side handling (form posts, API routes), add
+  // a `main` entry pointing at a Worker script — for now we're 100%
+  // static.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "union-webapp",
+  "compatibility_date": "2026-05-18",
+  "assets": {
+    "directory": "./dist"
+  }
+}
