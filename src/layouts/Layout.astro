@@ -1,15 +1,11 @@
 ---
 import '../styles/global.css'
 
-// Shared shell for every page. Header + footer are common across the
-// marketing surface; pages provide their own <main> via the slot.
-//
-// Google Fonts via <link> rather than @import in CSS because <link
-// rel="preconnect"> + <link rel="stylesheet"> renders fonts noticeably
-// faster than a CSS @import (which can't preconnect).
-//
-// Title + description are required for App Store Connect / Apple
-// review link validation; default copy mirrors the in-app strapline.
+// Shared document shell for the marketing site. Provides <head> (fonts
+// + meta) and the `.wrap` container; pages slot in their header,
+// content, and footer. EB Garamond (display + body) and IBM Plex Sans
+// (UI labels) loaded from Google Fonts via <link rel="preconnect"> for
+// fast first paint.
 
 interface Props {
   title: string
@@ -20,14 +16,14 @@ const { title, description } = Astro.props
 const fullTitle = title === 'Union' ? 'Union' : `${title} · Union`
 const meta =
   description ??
-  "When you don't have the words, two thousand years of Christians have left some for you. Union helps you find them."
+  'Union is a private prayer companion. Bring what is on your heart and Union meets you with the prayers Christians have prayed for centuries.'
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <title>{fullTitle}</title>
     <meta name="description" content={meta} />
@@ -37,44 +33,12 @@ const meta =
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
     />
   </head>
-  <body class="bg-union-cream text-union-charcoal font-ui">
-    <header class="border-b border-union-border">
-      <div
-        class="mx-auto flex max-w-3xl items-center justify-between px-6 py-5"
-      >
-        <a
-          href="/"
-          class="font-wordmark text-3xl italic text-union-charcoal"
-          aria-label="Union home"
-        >
-          Union
-        </a>
-        <nav class="flex gap-5 text-sm text-union-secondary">
-          <a class="hover:text-union-charcoal" href="/support">Support</a>
-          <a class="hover:text-union-charcoal" href="/privacy">Privacy</a>
-          <a class="hover:text-union-charcoal" href="/terms">Terms</a>
-        </nav>
-      </div>
-    </header>
-
-    <main class="mx-auto max-w-3xl px-6 py-12">
+  <body>
+    <div class="wrap">
       <slot />
-    </main>
-
-    <footer
-      class="mt-16 border-t border-union-border py-8 text-center text-sm text-union-secondary"
-    >
-      <div class="mx-auto max-w-3xl px-6">
-        <p>
-          © {new Date().getFullYear()} Union · <a
-            class="hover:text-union-charcoal"
-            href="mailto:hello@unionwith.app"
-          >hello@unionwith.app</a>
-        </p>
-      </div>
-    </footer>
+    </div>
   </body>
 </html>

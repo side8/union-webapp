@@ -1,112 +1,364 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
+
+const toc = [
+  { id: 'faq', label: 'Common questions' },
+  { id: 'feedback', label: 'Feedback' },
+  { id: 'response', label: 'Response times' },
+]
 ---
 
 <Layout
   title="Support"
-  description="Help with Union — common questions, contact, and how to delete your account."
+  description="Support for Union — common questions, feedback, and how to reach us."
 >
-  <article class="prose-union">
-    <h1 class="font-prayer text-5xl text-union-charcoal">Support</h1>
+  <Header back />
 
-    <p class="mt-8 text-lg leading-relaxed">
-      Union is a small product built by a small team. We read every
-      email and try to reply within a couple of working days.
-    </p>
+  <section class="title-block">
+    <div>
+      <div class="eyebrow">Support</div>
+      <h1>We're here to <em>help.</em></h1>
+    </div>
+    <dl class="meta">
+      <dt>Email</dt>
+      <dd><a href="mailto:support@unionwith.app">support@unionwith.app</a></dd>
+      <dt>Response time</dt>
+      <dd>Usually within a day or two</dd>
+    </dl>
+  </section>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Email us
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      <a class="text-union-gold underline" href="mailto:hello@unionwith.app"
-      >hello@unionwith.app</a>
-      <span class="block text-base text-union-secondary">
-        Bug reports, feature requests, prayer-corpus feedback, anything
-        else — all welcome.
-      </span>
+  <section class="lede-row">
+    <p class="lede">
+      If you're experiencing issues with Union, have feedback, or need
+      assistance with your account, you can write us anytime. We're a small
+      team — but we read every message, and we aim to respond as quickly as we
+      can.
     </p>
+    <div class="email-card">
+      <div class="eyebrow">Write us</div>
+      <div class="lbl">Support inbox</div>
+      <a class="mail" href="mailto:support@unionwith.app"
+        >support@unionwith.app</a
+      >
+      <p class="note">
+        For privacy or data requests, use <a
+          class="note-link"
+          href="mailto:privacy@unionwith.app">privacy@unionwith.app</a
+        > instead.
+      </p>
+    </div>
+  </section>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Common questions
-    </h2>
+  <main class="doc">
+    <aside class="toc" aria-label="Contents">
+      <div class="lbl">Contents</div>
+      <ol>
+        {toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}
+      </ol>
+    </aside>
 
-    <h3 class="mt-6 font-ui text-xl font-medium text-union-charcoal">
-      How do I delete my account?
-    </h3>
-    <p class="mt-2 text-lg leading-relaxed">
-      In the app: Settings → Delete account. Type
-      <code>delete</code> to confirm. Your account row, every
-      check-in, every saved prayer, every reflection, and every
-      related row are removed in a single transaction. We can&apos;t
-      recover the data after — make sure you mean it.
-    </p>
-    <p class="mt-2 text-lg leading-relaxed">
-      If you can&apos;t reach the app for some reason, email
-      <a class="text-union-gold underline" href="mailto:hello@unionwith.app"
-      >hello@unionwith.app</a>
-      with the email address you signed up with and we&apos;ll delete
-      it for you.
-    </p>
+    <article class="prose">
+      <section id="faq">
+        <h2><span class="h-num">§ 01</span>Common <em>questions</em></h2>
+        <ol class="faq">
+          <li>
+            <div class="n"></div>
+            <div>
+              <p class="q">I didn't receive my login email.</p>
+              <p class="a">
+                Check your spam or junk folder first. If it still hasn't
+                arrived after a few minutes, try requesting a new login link
+                from the app.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div class="n"></div>
+            <div>
+              <p class="q">How do I delete my account?</p>
+              <p class="a">
+                Sign into the app, head to <strong>Settings</strong>, and tap
+                <strong>Delete Account</strong>.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div class="n"></div>
+            <div>
+              <p class="q">Is my journal or prayer data private?</p>
+              <p class="a">
+                Yes — your personal content is intended to remain private to
+                your account.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div class="n"></div>
+            <div>
+              <p class="q">The app isn't working properly.</p>
+              <p class="a">
+                Sorry about that. When you write to us, please include the
+                following — it helps us resolve problems faster:
+              </p>
+              <ul class="list">
+                <li>Your device type</li>
+                <li>iOS version</li>
+                <li>App version</li>
+                <li>A short description of the issue</li>
+              </ul>
+            </div>
+          </li>
+        </ol>
+      </section>
 
-    <h3 class="mt-6 font-ui text-xl font-medium text-union-charcoal">
-      I&apos;m not getting the sign-in code email
-    </h3>
-    <p class="mt-2 text-lg leading-relaxed">
-      Check your spam folder; the email comes from
-      <code>noreply@mail.app.unionwith</code>. If it&apos;s not there
-      after a few minutes, tap &ldquo;Use a different email&rdquo; on
-      the sign-in screen and try again — there may have been a typo.
-    </p>
+      <section id="feedback">
+        <h2><span class="h-num">§ 02</span><em>Feedback</em></h2>
+        <p>
+          Union is actively evolving, and we genuinely value feedback from our
+          community. If there's something you'd love to see improved, added, or
+          simplified, let us know.
+        </p>
+        <p class="tagline">
+          Write to <a class="inline" href="mailto:support@unionwith.app"
+            >support@unionwith.app</a
+          >.
+        </p>
+      </section>
 
-    <h3 class="mt-6 font-ui text-xl font-medium text-union-charcoal">
-      A prayer Union showed me has an error
-    </h3>
-    <p class="mt-2 text-lg leading-relaxed">
-      Email us with the prayer&apos;s title and what&apos;s wrong.
-      We&apos;ll review and fix it in the next update.
-    </p>
+      <section id="response">
+        <h2><span class="h-num">§ 03</span>Response <em>times</em></h2>
+        <p>
+          We're a small team, but we do our best to respond promptly to all
+          support requests.
+        </p>
+        <p class="signoff">Thanks for being part of Union.</p>
+      </section>
 
-    <h3 class="mt-6 font-ui text-xl font-medium text-union-charcoal">
-      Can I export my saved prayers?
-    </h3>
-    <p class="mt-2 text-lg leading-relaxed">
-      Not from the app yet — it&apos;s on the roadmap. In the
-      meantime, email us and we&apos;ll send you a copy of the rows
-      we hold for your account.
-    </p>
+      <div class="ornament" aria-hidden="true">
+        <div class="line"></div>
+        <span class="mark">&#10086;</span>
+        <div class="line"></div>
+      </div>
+    </article>
+  </main>
 
-    <h3 class="mt-6 font-ui text-xl font-medium text-union-charcoal">
-      Is Union a counselling service?
-    </h3>
-    <p class="mt-2 text-lg leading-relaxed">
-      No. Union helps you find prayers — it&apos;s a companion, not a
-      counsellor, therapist, or pastor. If you&apos;re in crisis,
-      please reach out to a qualified person or a crisis line in your
-      country.
-    </p>
-
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Crisis support
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      If you&apos;re struggling and need someone to talk to right now:
-    </p>
-    <ul class="mt-3 space-y-2 text-lg leading-relaxed">
-      <li>
-        <strong>UK</strong> — Samaritans, free to call 24/7:
-        <a class="text-union-gold underline" href="tel:116123">116 123</a>
-      </li>
-      <li>
-        <strong>US</strong> — 988 Suicide and Crisis Lifeline:
-        <a class="text-union-gold underline" href="tel:988">988</a>
-      </li>
-      <li>
-        <strong>Elsewhere</strong> — see
-        <a
-          class="text-union-gold underline"
-          href="https://findahelpline.com"
-          rel="external">findahelpline.com</a>
-      </li>
-    </ul>
-  </article>
+  <Footer />
 </Layout>
+
+<style>
+  /* support-only: lede row + dark email card + faq list */
+  .lede-row {
+    padding: 56px 0 24px;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 80px;
+    align-items: start;
+  }
+  .lede-row .lede {
+    font-family: var(--body-font);
+    font-size: 24px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 0;
+    max-width: 520px;
+    text-wrap: pretty;
+  }
+  .lede-row .lede::first-letter {
+    font-family: var(--display-font);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 5em;
+    line-height: 0.82;
+    float: left;
+    color: var(--accent);
+    padding: 0.08em 0.12em 0 0;
+    margin-right: 4px;
+  }
+  .email-card {
+    background: #181410;
+    color: #f3ecdf;
+    border-radius: 24px;
+    padding: 40px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .email-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 24px;
+    background: radial-gradient(
+      500px 300px at 90% 10%,
+      rgba(200, 154, 94, 0.1),
+      transparent 60%
+    );
+  }
+  .email-card > * {
+    position: relative;
+    z-index: 1;
+  }
+  .email-card .eyebrow {
+    color: var(--accent-2);
+  }
+  .email-card .lbl {
+    font-family: var(--ui-font);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(243, 236, 223, 0.55);
+    font-weight: 500;
+    margin-top: 14px;
+  }
+  .email-card .mail {
+    display: inline-block;
+    font-family: var(--display-font);
+    font-style: italic;
+    font-size: clamp(28px, 3.2vw, 40px);
+    line-height: 1.1;
+    color: #f8efd9;
+    margin-top: 8px;
+    border-bottom: 1px solid var(--accent-2);
+    padding: 2px 2px 6px;
+  }
+  .email-card .mail:hover {
+    color: var(--accent-2);
+  }
+  .email-card .note {
+    font-family: var(--body-font);
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.5;
+    color: rgba(243, 236, 223, 0.7);
+    margin: 22px 0 0;
+    max-width: 340px;
+  }
+  .email-card .note-link {
+    color: #f8efd9;
+    border-bottom: 1px solid rgba(200, 154, 94, 0.5);
+  }
+
+  /* support doc spacing + faq */
+  .doc {
+    padding-top: 64px;
+  }
+  .prose section + section {
+    margin-top: 80px;
+  }
+  .prose h2 {
+    margin: 0 0 36px;
+  }
+  .prose .signoff {
+    margin-top: 32px;
+    font-style: italic;
+    color: var(--ink-mute);
+  }
+  .prose p.tagline {
+    color: var(--ink-soft);
+    padding-left: 22px;
+    margin: 24px 0;
+  }
+
+  .faq {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+    counter-reset: faq;
+    display: block;
+  }
+  .faq > li {
+    counter-increment: faq;
+    padding: 28px 0;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .faq > li:last-child {
+    border-bottom: 1px solid var(--rule);
+  }
+  .faq .n {
+    font-family: var(--ui-font);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+    padding-top: 6px;
+  }
+  .faq .n::before {
+    content: counter(faq, decimal-leading-zero);
+  }
+  .faq .q {
+    font-family: var(--display-font);
+    font-weight: 500;
+    font-style: italic;
+    font-size: 24px;
+    line-height: 1.25;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    margin: 0 0 10px;
+  }
+  .faq .a {
+    font-family: var(--body-font);
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .faq .a strong {
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .faq ul.list {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .faq ul.list li {
+    position: relative;
+    padding-left: 24px;
+    color: var(--ink-soft);
+    font-size: 18px;
+    line-height: 1.45;
+  }
+  .faq ul.list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 12px;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+
+  @media (max-width: 1000px) {
+    .lede-row {
+      grid-template-columns: 1fr;
+      gap: 36px;
+      padding: 36px 0 12px;
+    }
+    .email-card {
+      padding: 32px;
+    }
+    .doc {
+      padding-top: 48px;
+    }
+  }
+  @media (max-width: 560px) {
+    .faq > li {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .faq .n {
+      padding-top: 0;
+    }
+  }
+</style>

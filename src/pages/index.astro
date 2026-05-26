@@ -1,39 +1,500 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
+import PhoneMock from '../components/PhoneMock.astro'
+
+const sources = [
+  {
+    yr: '1549 — 1662',
+    titleBefore: 'The Book of ',
+    titleEm: 'Common Prayer',
+    body: "The Anglican tradition's collects, morning and evening prayer, litanies, and prayers for every kind of day.",
+  },
+  {
+    yr: '16th — 17th c.',
+    titleBefore: 'Reformed Devotions',
+    body: 'Prayers from the Genevan, Dutch, and Scottish Reformed traditions — Calvin, Knox, the Heidelberg, the Westminster.',
+  },
+  {
+    yr: '18th c. — today',
+    titleBefore: 'Wesleyan & Methodist Collects',
+    body: 'The plain, fervent prayers of the Wesleys and the Methodist tradition — pastoral, personal, unembarrassed.',
+  },
+  {
+    yr: '2nd c. — modern',
+    titleBefore: 'Ancient & Modern Voices',
+    body: 'Patristic prayers, Celtic blessings, mystics and pastors of our own century — translated, preserved, attributed.',
+  },
+]
 ---
 
 <Layout title="Union">
-  <div class="py-12 text-center">
-    <h1 class="font-wordmark text-7xl italic text-union-charcoal">Union</h1>
-    <p
-      class="mx-auto mt-8 max-w-2xl font-prayer text-2xl leading-relaxed text-union-secondary"
-    >
-      When you don&apos;t have the words, two thousand years of Christians
-      have left some for you. Union helps you find them.
-    </p>
+  <Header />
+
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">A private prayer companion</div>
+      <h1>Pray with the <em>whole church</em> behind you.</h1>
+      <p class="lede">
+        Bring what's on your heart — anxiety, gratitude, grief, an ordinary
+        Tuesday — and Union meets you with the prayers Christians have been
+        praying for centuries. From the Book of Common Prayer to Methodist
+        collects, Reformed devotions to ancient voices. Nothing invented;
+        nothing generated.
+      </p>
+      <div class="cta-row">
+        <a
+          class="btn"
+          href="mailto:hello@unionwith.app?subject=Union%20beta%20access"
+          >Request beta access <span class="arr">→</span></a
+        >
+        <span class="availability">Private beta · iOS</span>
+      </div>
+    </div>
+    <PhoneMock />
+  </section>
+
+  <div class="ornament" aria-hidden="true">
+    <div class="line"></div>
+    <span class="mark">&#10086;</span>
+    <div class="line"></div>
   </div>
 
-  <section class="mt-16 grid gap-6">
-    <p class="text-lg leading-relaxed text-union-charcoal">
-      Union is a private prayer companion. Tell it what&apos;s on your heart;
-      it answers with words from the church&apos;s long tradition — the
-      Anglican Book of Common Prayer, Reformed devotions, Methodist
-      collects, ancient and modern voices.
-    </p>
-    <p class="text-lg leading-relaxed text-union-charcoal">
-      What you share stays yours. We don&apos;t sell it, share it, or use it
-      to train AI models.
-    </p>
+  <section class="block" id="sources">
+    <div class="section-head">
+      <h2>Where the <em>words</em> come from.</h2>
+      <p class="sh-copy">
+        Union draws from a deep well — public-domain liturgies and prayers the
+        church has sung, said, and prayed across centuries and continents.
+        Every prayer is attributed. Nothing is invented; nothing is generated.
+      </p>
+    </div>
+    <div class="sources">
+      {
+        sources.map((s) => (
+          <div class="src">
+            <div class="yr">{s.yr}</div>
+            <h3>
+              {s.titleBefore}
+              {s.titleEm && <em>{s.titleEm}</em>}
+            </h3>
+            <p>{s.body}</p>
+          </div>
+        ))
+      }
+    </div>
   </section>
 
-  <section class="mt-16 rounded-2xl border border-union-border bg-white p-6">
-    <h2 class="text-sm uppercase tracking-[0.2em] text-union-secondary">
-      Coming soon
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed text-union-charcoal">
-      Union is in private beta on iOS. If you&apos;d like to test it,
-      email <a class="text-union-gold underline" href="mailto:hello@unionwith.app"
-      >hello@unionwith.app</a>.
-    </p>
+  <section class="block" id="privacy">
+    <div class="privacy">
+      <div>
+        <div class="eyebrow">Privacy, plainly</div>
+        <h2>Simple, transparent, <em>minimal.</em></h2>
+        <p class="p-lede">
+          We care about your privacy and aim to keep data collection simple,
+          transparent, and minimal — only what's needed to give you the app
+          you signed up for.
+        </p>
+      </div>
+      <ul>
+        <li>
+          <span class="num">01</span><strong
+            >We collect only what we need.</strong
+          > Your email and authentication info, limited usage and diagnostic
+          data, and the content you create — nothing more.
+        </li>
+        <li>
+          <span class="num">02</span><strong
+            >We don't sell your personal information.</strong
+          > Not to advertisers, not to anyone.
+        </li>
+        <li>
+          <span class="num">03</span><strong
+            >Your data is yours to access, correct, or delete.</strong
+          > Any time — write to <a class="mail" href="mailto:privacy@unionwith.app"
+            >privacy@unionwith.app</a
+          >.
+        </li>
+      </ul>
+      <p class="p-more">
+        <a href="/privacy">Read the full privacy policy →</a>
+      </p>
+    </div>
   </section>
+
+  <section class="beta">
+    <div class="eyebrow eyebrow-center">Coming soon</div>
+    <h2>In <em>private beta</em> on iOS.</h2>
+    <p>
+      If you'd like to test Union, write us. A small group of believers is
+      shaping it right now — prayer by prayer, week by week.
+    </p>
+    <a class="email" href="mailto:hello@unionwith.app">hello@unionwith.app</a>
+  </section>
+
+  <Footer />
 </Layout>
+
+<style>
+  .hero {
+    padding: 64px 0 96px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 80px;
+    align-items: center;
+  }
+  h1 {
+    font-family: var(--display-font);
+    font-weight: 500;
+    font-size: clamp(56px, 7.4vw, 116px);
+    line-height: 0.95;
+    letter-spacing: -0.018em;
+    margin: 22px 0 0;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .lede {
+    font-family: var(--body-font);
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 36px 0 0;
+    max-width: 560px;
+    text-wrap: pretty;
+  }
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px 28px;
+    margin-top: 44px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 24px;
+    background: var(--ink);
+    color: var(--paper-warm);
+    border-radius: 999px;
+    font-family: var(--ui-font);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transition:
+      background 0.18s ease,
+      transform 0.18s ease;
+  }
+  .btn:hover {
+    background: var(--accent);
+  }
+  .btn .arr {
+    display: inline-block;
+    transition: transform 0.25s ease;
+  }
+  .btn:hover .arr {
+    transform: translateX(3px);
+  }
+  .availability {
+    font-family: var(--ui-font);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .availability::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #3a8a52;
+    box-shadow: 0 0 0 3px rgba(58, 138, 82, 0.15);
+  }
+
+  /* ───── sections ───── */
+  section.block {
+    padding: 88px 0;
+  }
+  .section-head {
+    display: grid;
+    grid-template-columns: 0.9fr 1.3fr;
+    gap: 80px;
+    margin-bottom: 64px;
+    align-items: end;
+  }
+  .section-head h2 {
+    font-family: var(--display-font);
+    font-weight: 500;
+    font-size: clamp(40px, 4.6vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.012em;
+    margin: 12px 0 0;
+    text-wrap: balance;
+  }
+  .section-head h2 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .section-head .sh-copy {
+    font-family: var(--body-font);
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 600px;
+  }
+
+  /* sources grid */
+  .sources {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .src {
+    padding: 36px 28px;
+    border-right: 1px solid var(--rule);
+  }
+  .src:last-child {
+    border-right: 0;
+    padding-right: 0;
+  }
+  .src:first-child {
+    padding-left: 0;
+  }
+  .src .yr {
+    font-family: var(--ui-font);
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .src h3 {
+    font-family: var(--display-font);
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1.15;
+    margin: 14px 0 12px;
+    letter-spacing: -0.005em;
+  }
+  .src h3 em {
+    font-style: italic;
+    font-weight: 400;
+  }
+  .src p {
+    font-family: var(--body-font);
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  /* ───── privacy band ───── */
+  .privacy {
+    background: #181410;
+    color: #f3ecdf;
+    border-radius: 28px;
+    padding: 72px;
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 80px;
+    align-items: start;
+    position: relative;
+    overflow: hidden;
+  }
+  .privacy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 28px;
+    background: radial-gradient(
+      700px 400px at 90% 10%,
+      rgba(200, 154, 94, 0.1),
+      transparent 60%
+    );
+  }
+  .privacy > * {
+    position: relative;
+    z-index: 1;
+  }
+  .privacy .eyebrow {
+    color: var(--accent-2);
+  }
+  .privacy h2 {
+    font-family: var(--display-font);
+    font-weight: 500;
+    font-size: clamp(36px, 3.6vw, 52px);
+    line-height: 1.05;
+    margin: 14px 0 24px;
+    letter-spacing: -0.008em;
+  }
+  .privacy h2 em {
+    font-style: italic;
+    color: var(--accent-2);
+    font-weight: 400;
+  }
+  .privacy .p-lede {
+    font-family: var(--body-font);
+    font-size: 18px;
+    line-height: 1.55;
+    color: rgba(243, 236, 223, 0.65);
+    margin: 0;
+    max-width: 380px;
+  }
+  .privacy ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .privacy li {
+    font-family: var(--body-font);
+    font-size: 20px;
+    line-height: 1.45;
+    color: rgba(243, 236, 223, 0.92);
+    padding-left: 38px;
+    position: relative;
+  }
+  .privacy li .num {
+    position: absolute;
+    left: 0;
+    top: 0.35em;
+    font-family: var(--ui-font);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--accent-2);
+    font-weight: 500;
+  }
+  .privacy li strong {
+    color: #f8efd9;
+    font-weight: 500;
+    font-style: italic;
+  }
+  .privacy li .mail {
+    color: inherit;
+    border-bottom: 1px solid rgba(200, 154, 94, 0.45);
+  }
+  .privacy .p-more {
+    grid-column: 1 / -1;
+    font-family: var(--ui-font);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(243, 236, 223, 0.45);
+    margin: 8px 0 0;
+  }
+  .privacy .p-more a:hover {
+    color: rgba(243, 236, 223, 0.8);
+  }
+
+  /* ───── beta band ───── */
+  .beta {
+    padding: 120px 0 96px;
+    text-align: center;
+  }
+  .beta .eyebrow-center {
+    display: inline-flex;
+    justify-content: center;
+  }
+  .beta h2 {
+    font-family: var(--display-font);
+    font-weight: 500;
+    font-size: clamp(44px, 5.2vw, 80px);
+    line-height: 1;
+    margin: 22px 0 0;
+    letter-spacing: -0.014em;
+    text-wrap: balance;
+  }
+  .beta h2 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .beta p {
+    font-family: var(--body-font);
+    font-size: 21px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 28px auto 0;
+    max-width: 600px;
+    text-wrap: pretty;
+  }
+  .beta .email {
+    display: inline-block;
+    margin-top: 40px;
+    font-family: var(--display-font);
+    font-style: italic;
+    font-size: 30px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--accent);
+    padding: 2px 4px 6px;
+    transition: color 0.18s ease;
+  }
+  .beta .email:hover {
+    color: var(--accent);
+  }
+
+  @media (max-width: 1000px) {
+    .hero {
+      grid-template-columns: 1fr;
+      gap: 48px;
+      padding: 32px 0 64px;
+    }
+    .sources {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .src {
+      border-right: 0;
+      border-bottom: 1px solid var(--rule);
+      padding: 28px 0;
+    }
+    .src:nth-child(odd) {
+      padding-right: 24px;
+    }
+    .src:nth-child(even) {
+      padding-left: 24px;
+      border-left: 1px solid var(--rule);
+    }
+    .section-head {
+      grid-template-columns: 1fr;
+      gap: 18px;
+      margin-bottom: 36px;
+    }
+    .privacy {
+      grid-template-columns: 1fr;
+      padding: 44px;
+      gap: 36px;
+    }
+    section.block {
+      padding: 64px 0;
+    }
+    .beta {
+      padding: 80px 0 64px;
+    }
+  }
+  @media (max-width: 560px) {
+    .sources {
+      grid-template-columns: 1fr;
+    }
+    .src {
+      border-left: 0 !important;
+      padding: 24px 0 !important;
+    }
+  }
+</style>

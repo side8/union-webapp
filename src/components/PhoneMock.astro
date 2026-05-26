@@ -1,0 +1,426 @@
+---
+// Decorative iPhone product mock shown in the hero. Purely a
+// marketing visual — static markup, no interactivity. Ported from the
+// handoff's phone.jsx + ios-frame.jsx (the bezel, dynamic island,
+// status bar, home indicator) into plain HTML/CSS.
+//
+// Parameterised so the prayer shown can change later without touching
+// layout. Defaults reproduce the handoff: the Collect for Aid Against
+// All Perils (BCP 1662) answering a Tuesday-evening note.
+interface Props {
+  note?: string
+  eyebrow?: string
+  dropCap?: string
+  prayerRest?: string
+  attributionTitle?: string
+  attributionSource?: string
+}
+const {
+  note = "I can't quiet my mind tonight.",
+  eyebrow = 'Tuesday · Evening',
+  dropCap = 'L',
+  prayerRest = 'ighten our darkness, we beseech thee, O Lord; and by thy great mercy defend us from all perils and dangers of this night; for the love of thy only Son, our Saviour, Jesus Christ.',
+  attributionTitle = 'Collect for Aid Against All Perils',
+  attributionSource = 'Book of Common Prayer · 1662',
+} = Astro.props
+---
+
+<div class="phone-slot">
+  <div class="phone-mount">
+    <div class="device">
+      <div class="island" aria-hidden="true"></div>
+
+      <div class="statusbar" aria-hidden="true">
+        <span class="time">9:41</span>
+        <div class="status-icons">
+          <svg width="19" height="12" viewBox="0 0 19 12"
+            ><rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7"></rect><rect
+              x="4.8"
+              y="5"
+              width="3.2"
+              height="7"
+              rx="0.7"></rect><rect
+              x="9.6"
+              y="2.5"
+              width="3.2"
+              height="9.5"
+              rx="0.7"></rect><rect
+              x="14.4"
+              y="0"
+              width="3.2"
+              height="12"
+              rx="0.7"></rect></svg
+          >
+          <svg width="17" height="12" viewBox="0 0 17 12"
+            ><path
+              d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z"
+            ></path><path
+              d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z"
+            ></path><circle cx="8.5" cy="10.5" r="1.5"></circle></svg
+          >
+          <svg width="27" height="13" viewBox="0 0 27 13"
+            ><rect
+              x="0.5"
+              y="0.5"
+              width="23"
+              height="12"
+              rx="3.5"
+              stroke="currentColor"
+              stroke-opacity="0.35"
+              fill="none"></rect><rect
+              x="2"
+              y="2"
+              width="20"
+              height="9"
+              rx="2"></rect><path
+              d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z"
+              fill-opacity="0.4"></path></svg
+          >
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-noise" aria-hidden="true"></div>
+
+        <div class="ph-word">
+          Union<span class="ph-dot"></span>
+        </div>
+
+        <div class="ph-eyebrow">{eyebrow}</div>
+
+        <div class="ph-note">
+          <span class="q">“</span>{note}<span class="q">”</span>
+        </div>
+
+        <div class="ph-rule">
+          <span class="line"></span>
+          <span class="label">pray with</span>
+          <span class="line"></span>
+        </div>
+
+        <div class="ph-prayer">
+          <span class="cap">{dropCap}</span>{prayerRest}{' '}
+          <span class="amen">Amen.</span>
+        </div>
+
+        <div class="ph-spacer"></div>
+
+        <div class="ph-attr">
+          <div class="attr-title">{attributionTitle}</div>
+          <div class="attr-source">{attributionSource}</div>
+        </div>
+
+        <div class="ph-actions">
+          <div class="action">
+            <div class="circle">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                ></path></svg
+              >
+            </div>
+            <div class="label">Save</div>
+          </div>
+          <div class="action">
+            <div class="circle">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><polyline points="1 4 1 10 7 10"></polyline><path
+                  d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg
+              >
+            </div>
+            <div class="label">Again</div>
+          </div>
+          <div class="action">
+            <div class="circle">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><line x1="5" y1="12" x2="19" y2="12"></line><polyline
+                  points="12 5 19 12 12 19"></polyline></svg
+              >
+            </div>
+            <div class="label">Another</div>
+          </div>
+        </div>
+
+        <div class="home-indicator" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .phone-slot {
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+  .phone-slot::before {
+    content: '';
+    position: absolute;
+    inset: -40px -20px -40px -20px;
+    z-index: 0;
+    background: radial-gradient(
+      closest-side,
+      rgba(28, 24, 19, 0.1),
+      transparent 70%
+    );
+    filter: blur(20px);
+  }
+  .phone-mount {
+    position: relative;
+    z-index: 1;
+    transform: scale(0.85);
+    transform-origin: center;
+  }
+
+  .device {
+    width: 400px;
+    height: 840px;
+    border-radius: 48px;
+    overflow: hidden;
+    position: relative;
+    background: #f2f2f7;
+    box-shadow:
+      0 40px 80px rgba(0, 0, 0, 0.18),
+      0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+  .island {
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 37px;
+    border-radius: 24px;
+    background: #000;
+    z-index: 50;
+  }
+  .statusbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 19px 34px 0;
+    color: #1c1813;
+  }
+  .statusbar .time {
+    font-family: -apple-system, 'SF Pro', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    fill: #1c1813;
+  }
+
+  .screen {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(180deg, #f3ecdf 0%, #ede4d0 100%);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .screen-noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .1  0 0 0 0 .08  0 0 0 0 .06  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  .ph-word {
+    padding-top: 64px;
+    padding-bottom: 6px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    font-family: var(--display-font);
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  .ph-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    transform: translateY(-1px);
+    margin-left: 4px;
+  }
+  .ph-eyebrow {
+    margin-top: 18px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    font-family: var(--ui-font);
+    font-size: 9.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .ph-note {
+    margin: 24px 36px 0;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    font-family: var(--display-font);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 19px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    letter-spacing: -0.002em;
+  }
+  .ph-note .q {
+    color: var(--accent);
+  }
+  .ph-rule {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 48px 0;
+    position: relative;
+    z-index: 1;
+  }
+  .ph-rule .line {
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+  .ph-rule .label {
+    font-family: var(--display-font);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-mute);
+  }
+  .ph-prayer {
+    margin: 22px 30px 0;
+    position: relative;
+    z-index: 1;
+    font-family: var(--display-font);
+    font-size: 21px;
+    line-height: 1.42;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .ph-prayer .cap {
+    float: left;
+    font-family: var(--display-font);
+    font-weight: 500;
+    font-style: italic;
+    font-size: 70px;
+    line-height: 0.82;
+    color: var(--accent);
+    padding-right: 10px;
+    padding-top: 6px;
+    margin-left: -2px;
+  }
+  .ph-prayer .amen {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .ph-spacer {
+    flex: 1;
+  }
+  .ph-attr {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 0 28px;
+  }
+  .ph-attr .attr-title {
+    font-family: var(--ui-font);
+    font-size: 9.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+  .ph-attr .attr-source {
+    font-family: var(--display-font);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-mute);
+    margin-top: 4px;
+  }
+  .ph-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-around;
+    padding: 22px 28px 40px;
+  }
+  .ph-actions .action {
+    text-align: center;
+  }
+  .ph-actions .circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+    background: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: var(--ink);
+  }
+  .ph-actions .label {
+    margin-top: 8px;
+    font-family: var(--ui-font);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 139px;
+    height: 5px;
+    border-radius: 100px;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 60;
+  }
+
+  @media (max-width: 1000px) {
+    .phone-mount {
+      transform: scale(0.78);
+    }
+  }
+</style>
