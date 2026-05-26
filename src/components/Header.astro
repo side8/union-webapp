@@ -1,0 +1,29 @@
+---
+// Site header — wordmark + single "Tradition" nav link. Privacy and
+// Support are deliberately NOT in the top nav (per design); they live
+// only in the footer. The `back` prop renders the "← Back to Union"
+// row beneath the header on document pages.
+interface Props {
+  back?: boolean
+}
+const { back = false } = Astro.props
+---
+
+<header class="site">
+  <a class="word" href="/" aria-label="Union home"
+    ><span>Union</span><span class="dot"></span></a
+  >
+  <nav class="top">
+    <a href="/#sources">Tradition</a>
+  </nav>
+</header>
+
+{
+  back && (
+    <div class="back-row">
+      <a class="back" href="/">
+        <span class="arr">←</span> Back to Union
+      </a>
+    </div>
+  )
+}

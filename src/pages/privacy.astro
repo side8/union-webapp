@@ -1,146 +1,170 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
 
-const lastUpdated = 'May 2026'
-const contactEmail = 'privacy@unionwith.app'
+const toc = [
+  { id: 'collect', label: 'Information we collect' },
+  { id: 'use', label: 'How we use information' },
+  { id: 'storage', label: 'Data storage & security' },
+  { id: 'rights', label: 'Your rights' },
+  { id: 'retention', label: 'Data retention' },
+  { id: 'third', label: 'Third-party services' },
+  { id: 'changes', label: 'Changes to this policy' },
+  { id: 'contact', label: 'Contact' },
+]
 ---
 
 <Layout
   title="Privacy"
   description="Union's privacy policy: what we collect, how we use it, your rights."
 >
-  <article class="prose-union">
-    <h1 class="font-prayer text-5xl text-union-charcoal">Privacy Policy</h1>
-    <p class="mt-2 text-sm text-union-secondary">
-      Last updated: {lastUpdated}
-    </p>
+  <Header back />
 
-    <p class="mt-8 text-lg leading-relaxed">
-      At Union (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), we care about your privacy and aim to keep
-      data collection simple, transparent, and minimal.
-    </p>
-    <p class="mt-4 text-lg leading-relaxed">
-      This Privacy Policy explains what information we collect, how we use it,
-      and your choices when using the Union app and related services
-      (&ldquo;Services&rdquo;).
-    </p>
+  <section class="title-block">
+    <div>
+      <div class="eyebrow">Privacy policy</div>
+      <h1>Privacy, <em>plainly.</em></h1>
+    </div>
+    <dl class="meta">
+      <dt>Last updated</dt>
+      <dd>May 2026</dd>
+      <dt>Questions</dt>
+      <dd><a href="mailto:privacy@unionwith.app">privacy@unionwith.app</a></dd>
+    </dl>
+  </section>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Information We Collect
-    </h2>
+  <main class="doc">
+    <aside class="toc" aria-label="Contents">
+      <div class="lbl">Contents</div>
+      <ol>
+        {toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}
+      </ol>
+    </aside>
 
-    <h3 class="mt-6 font-prayer text-2xl text-union-charcoal">
-      Account Information
-    </h3>
-    <p class="mt-3 text-lg leading-relaxed">
-      When you create an account, we may collect:
-    </p>
-    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
-      <li>Your email address</li>
-      <li>Authentication information used to sign you in securely</li>
-    </ul>
+    <article class="prose">
+      <p class="lede">
+        At Union, we care about your privacy and aim to keep data collection
+        simple, transparent, and minimal. This policy explains what information
+        we collect, how we use it, and your choices when using the Union app
+        and related services.
+      </p>
 
-    <h3 class="mt-6 font-prayer text-2xl text-union-charcoal">
-      Usage Information
-    </h3>
-    <p class="mt-3 text-lg leading-relaxed">
-      We may collect limited information about how you use the app, including:
-    </p>
-    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
-      <li>App interactions and feature usage</li>
-      <li>Device type and app version</li>
-      <li>Diagnostic and crash information</li>
-    </ul>
+      <h2 id="collect">
+        <span class="h-num">§ 01</span>Information we <em>collect</em>
+      </h2>
 
-    <h3 class="mt-6 font-prayer text-2xl text-union-charcoal">
-      Content You Create
-    </h3>
-    <p class="mt-3 text-lg leading-relaxed">
-      If you use journaling, prayer, reflections, notes, or other personal
-      features within Union, the content you create may be stored securely to
-      provide the service to you.
-    </p>
+      <h3>Account information</h3>
+      <p>When you create an account, we may collect:</p>
+      <ul>
+        <li>Your email address</li>
+        <li>Authentication information used to sign you in securely</li>
+      </ul>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      How We Use Information
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">We use information to:</p>
-    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
-      <li>Provide and improve the app</li>
-      <li>Authenticate and secure your account</li>
-      <li>Personalise your experience</li>
-      <li>Maintain app performance and reliability</li>
-      <li>Respond to support requests</li>
-    </ul>
-    <p class="mt-4 text-lg leading-relaxed">
-      We do not sell your personal information.
-    </p>
+      <h3>Usage information</h3>
+      <p>
+        We may collect limited information about how you use the app,
+        including:
+      </p>
+      <ul>
+        <li>App interactions and feature usage</li>
+        <li>Device type and app version</li>
+        <li>Diagnostic and crash information</li>
+      </ul>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Data Storage &amp; Security
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      We take reasonable technical and organisational measures to protect your
-      information from unauthorised access, loss, misuse, or disclosure.
-    </p>
-    <p class="mt-4 text-lg leading-relaxed">
-      No online service can guarantee absolute security, but we work to keep
-      your data protected and secure.
-    </p>
+      <h3>Content you create</h3>
+      <p>
+        If you use journaling, prayer, reflections, notes, or other personal
+        features within Union, the content you create may be stored securely to
+        provide the service to you.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Your Rights
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      Depending on your location, you may have rights to:
-    </p>
-    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
-      <li>Access your personal data</li>
-      <li>Correct inaccurate information</li>
-      <li>Request deletion of your data</li>
-      <li>Withdraw consent where applicable</li>
-    </ul>
-    <p class="mt-4 text-lg leading-relaxed">
-      To make a privacy request, contact us at:
-      <a class="text-union-gold underline" href={`mailto:${contactEmail}`}>{contactEmail}</a>.
-    </p>
+      <h2 id="use">
+        <span class="h-num">§ 02</span>How we <em>use</em> information
+      </h2>
+      <p>We use information to:</p>
+      <ul>
+        <li>Provide and improve the app</li>
+        <li>Authenticate and secure your account</li>
+        <li>Personalise your experience</li>
+        <li>Maintain app performance and reliability</li>
+        <li>Respond to support requests</li>
+      </ul>
+      <p class="tagline">We do not sell your personal information.</p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Data Retention
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      We retain information only for as long as necessary to provide the
-      Services, comply with legal obligations, resolve disputes, and enforce
-      our agreements.
-    </p>
+      <h2 id="storage">
+        <span class="h-num">§ 03</span>Data storage &amp; <em>security</em>
+      </h2>
+      <p>
+        We take reasonable technical and organisational measures to protect
+        your information from unauthorised access, loss, misuse, or disclosure.
+      </p>
+      <p>
+        No online service can guarantee absolute security, but we work to keep
+        your data protected and secure.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Third-Party Services
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      We use trusted service providers to help operate, maintain, and improve
-      Union.
-    </p>
-    <p class="mt-4 text-lg leading-relaxed">
-      These providers only process information necessary to provide their
-      services to us.
-    </p>
+      <h2 id="rights">
+        <span class="h-num">§ 04</span>Your <em>rights</em>
+      </h2>
+      <p>Depending on your location, you may have rights to:</p>
+      <ul>
+        <li>Access your personal data</li>
+        <li>Correct inaccurate information</li>
+        <li>Request deletion of your data</li>
+        <li>Withdraw consent where applicable</li>
+      </ul>
+      <p>
+        To make a privacy request, contact us at <a
+          class="inline"
+          href="mailto:privacy@unionwith.app">privacy@unionwith.app</a
+        >.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Changes to This Policy
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      We may update this Privacy Policy from time to time. If we make material
-      changes, we will update the &ldquo;Last updated&rdquo; date above.
-    </p>
+      <h2 id="retention">
+        <span class="h-num">§ 05</span>Data <em>retention</em>
+      </h2>
+      <p>
+        We retain information only for as long as necessary to provide the
+        Services, comply with legal obligations, resolve disputes, and enforce
+        our agreements.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Contact
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      If you have any questions about this Privacy Policy or your data,
-      contact:
-      <a class="text-union-gold underline" href={`mailto:${contactEmail}`}>{contactEmail}</a>.
-    </p>
-  </article>
+      <h2 id="third">
+        <span class="h-num">§ 06</span>Third-party <em>services</em>
+      </h2>
+      <p>
+        We use trusted service providers to help operate, maintain, and improve
+        Union. These providers only process information necessary to provide
+        their services to us.
+      </p>
+
+      <h2 id="changes">
+        <span class="h-num">§ 07</span>Changes to this <em>policy</em>
+      </h2>
+      <p>
+        We may update this Privacy Policy from time to time. If we make
+        material changes, we will update the “Last updated” date at the top of
+        the page.
+      </p>
+
+      <h2 id="contact">
+        <span class="h-num">§ 08</span><em>Contact</em>
+      </h2>
+      <p>
+        If you have any questions about this Privacy Policy or your data, write
+        to <a class="inline" href="mailto:privacy@unionwith.app"
+          >privacy@unionwith.app</a
+        >.
+      </p>
+
+      <div class="ornament" aria-hidden="true">
+        <div class="line"></div>
+        <span class="mark">&#10086;</span>
+        <div class="line"></div>
+      </div>
+    </article>
+  </main>
+
+  <Footer />
 </Layout>

@@ -1,116 +1,196 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
 
-const lastUpdated = '18 May 2026'
+const toc = [
+  { id: 'using', label: 'Using Union' },
+  { id: 'accounts', label: 'Accounts' },
+  { id: 'content', label: 'Your content' },
+  { id: 'availability', label: 'Availability' },
+  { id: 'privacy', label: 'Privacy' },
+  { id: 'acceptable', label: 'Acceptable use' },
+  { id: 'disclaimer', label: 'Disclaimer' },
+  { id: 'liability', label: 'Limitation of liability' },
+  { id: 'termination', label: 'Termination' },
+  { id: 'changes', label: 'Changes to these terms' },
+  { id: 'contact', label: 'Contact' },
+]
 ---
 
-<Layout
-  title="Terms"
-  description="Terms of use for Union — the prayer companion app."
->
-  <article class="prose-union">
-    <h1 class="font-prayer text-5xl text-union-charcoal">Terms</h1>
-    <p class="mt-2 text-sm text-union-secondary">
-      Last updated: {lastUpdated}
-    </p>
+<Layout title="Terms" description="Union's terms of service.">
+  <Header back />
 
-    <p class="mt-8 text-lg leading-relaxed">
-      By using Union (&ldquo;we&rdquo;, &ldquo;us&rdquo;) you agree to
-      these terms. They&apos;re intentionally short. If you don&apos;t
-      agree, please don&apos;t use the app.
-    </p>
+  <section class="title-block">
+    <div>
+      <div class="eyebrow">Terms of service</div>
+      <h1>Terms, <em>plainly.</em></h1>
+    </div>
+    <dl class="meta">
+      <dt>Last updated</dt>
+      <dd>May 2026</dd>
+      <dt>Questions</dt>
+      <dd><a href="mailto:support@unionwith.app">support@unionwith.app</a></dd>
+    </dl>
+  </section>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      What Union is
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      A prayer companion. You describe what&apos;s on your heart; we
-      suggest prayers from the Christian tradition that fit. We may
-      add a short pastoral note alongside the prayers. We are not
-      providing pastoral counselling, medical advice, mental health
-      treatment, or any other form of professional service. If you
-      are in distress, please contact a qualified professional or a
-      crisis line.
-    </p>
+  <main class="doc">
+    <aside class="toc" aria-label="Contents">
+      <div class="lbl">Contents</div>
+      <ol>
+        {toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}
+      </ol>
+    </aside>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Acceptable use
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      Use Union for personal prayer and reflection. Don&apos;t try to
-      reverse-engineer it, abuse the AI components, attempt to extract
-      our prayer corpus in bulk, or use the app to harass, defraud, or
-      harm anyone.
-    </p>
+    <article class="prose">
+      <p class="welcome">Welcome to Union.</p>
+      <p class="lede">
+        These Terms of Service (“Terms”) govern your use of the Union app,
+        website, and related services (“Services”). By using Union, you agree
+        to these Terms. If you do not agree to these Terms, please do not use
+        the Services.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Account, content, and deletion
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      You&apos;re responsible for keeping your sign-in email secure.
-      You retain ownership of everything you write into Union — your
-      check-ins, reflections, and answered notes. We process that
-      content only to provide the app, as described in our
-      <a class="text-union-gold underline" href="/privacy">privacy
-      page</a>. You can delete your account and all related data at any
-      time from Settings → Delete account.
-    </p>
+      <h2 id="using">
+        <span class="h-num">§ 01</span>Using <em>Union</em>
+      </h2>
+      <p>
+        Union is designed to support reflection, prayer, journaling, and
+        personal growth.
+      </p>
+      <p>
+        You agree to use the Services lawfully and respectfully, and not to
+        misuse, interfere with, or attempt to disrupt the platform.
+      </p>
+      <p>You must be at least 13 years old to use Union.</p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Prayer corpus
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      The prayers Union suggests are drawn from historical and
-      contemporary Christian sources. Public-domain texts (the Book of
-      Common Prayer, classical collects, ancient prayers) are quoted
-      as-is. Where modern prayers are included, we believe we have the
-      necessary permissions or rely on fair use; if you believe a
-      prayer is included in error, email us and we&apos;ll review.
-    </p>
+      <h2 id="accounts">
+        <span class="h-num">§ 02</span><em>Accounts</em>
+      </h2>
+      <p>
+        You are responsible for maintaining access to your account and for any
+        activity that occurs under your account.
+      </p>
+      <p>
+        We may suspend or terminate accounts that violate these Terms or misuse
+        the Services.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Availability and changes
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      Union is offered as-is. We may change features, take it down for
-      maintenance, or retire it. We&apos;ll give reasonable notice
-      before any retirement so you can export your saved prayers.
-    </p>
+      <h2 id="content">
+        <span class="h-num">§ 03</span>Your <em>content</em>
+      </h2>
+      <p>
+        You retain ownership of the content you create within Union, including
+        journal entries, reflections, notes, and other personal content.
+      </p>
+      <p>
+        By using the Services, you grant us permission to store and process
+        your content solely for the purpose of operating and improving Union.
+      </p>
+      <p class="tagline">
+        We do not claim ownership over your personal content.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Liability
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      To the extent permitted by law, Union is not liable for indirect
-      or consequential losses arising from your use of the app. Nothing
-      in these terms limits liability for things the law doesn&apos;t
-      let us limit (such as death or personal injury caused by our
-      negligence, or fraud).
-    </p>
+      <h2 id="availability">
+        <span class="h-num">§ 04</span><em>Availability</em>
+      </h2>
+      <p>
+        We aim to keep Union available and reliable, but we cannot guarantee
+        uninterrupted access at all times.
+      </p>
+      <p>
+        Features may change, improve, or be removed over time as the product
+        evolves.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Governing law
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      These terms are governed by the laws of England and Wales.
-      Disputes go to the courts of England and Wales.
-    </p>
+      <h2 id="privacy">
+        <span class="h-num">§ 05</span><em>Privacy</em>
+      </h2>
+      <p>
+        Your use of Union is also governed by our <a
+          class="inline"
+          href="/privacy">Privacy Policy</a
+        >. Please review it to understand how we collect and use information.
+      </p>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Changes to these terms
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      If we make a material change we&apos;ll update the
-      &ldquo;last updated&rdquo; date above and surface a notice in
-      the app for at least a week.
-    </p>
+      <h2 id="acceptable">
+        <span class="h-num">§ 06</span>Acceptable <em>use</em>
+      </h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use Union for unlawful purposes</li>
+        <li>Attempt to gain unauthorised access to systems or accounts</li>
+        <li>Interfere with the security or operation of the Services</li>
+        <li>Upload harmful, abusive, or malicious content</li>
+        <li>Reverse engineer or copy the Services without permission</li>
+      </ul>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Contact
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      <a class="text-union-gold underline" href="mailto:hello@unionwith.app"
-      >hello@unionwith.app</a>.
-    </p>
-  </article>
+      <h2 id="disclaimer">
+        <span class="h-num">§ 07</span><em>Disclaimer</em>
+      </h2>
+      <p>
+        Union is provided on an “as is” and “as available” basis. We make no
+        guarantees regarding:
+      </p>
+      <ul>
+        <li>Continuous availability</li>
+        <li>Accuracy of generated content</li>
+        <li>Fitness for a particular purpose</li>
+        <li>Uninterrupted or error-free operation</li>
+      </ul>
+      <p class="tagline">
+        Union is intended for informational and personal use only and is not
+        medical, mental health, legal, or professional advice.
+      </p>
+
+      <h2 id="liability">
+        <span class="h-num">§ 08</span>Limitation of <em>liability</em>
+      </h2>
+      <p>
+        To the maximum extent permitted by law, Union and its operators will
+        not be liable for any indirect, incidental, special, consequential, or
+        punitive damages arising from your use of the Services.
+      </p>
+
+      <h2 id="termination">
+        <span class="h-num">§ 09</span><em>Termination</em>
+      </h2>
+      <p>You may stop using Union at any time.</p>
+      <p>
+        You may also delete your account at any time within the app by going to
+        <code>Settings → Delete Account</code>.
+      </p>
+      <p>
+        We reserve the right to suspend or terminate access to the Services if
+        these Terms are violated.
+      </p>
+
+      <h2 id="changes">
+        <span class="h-num">§ 10</span>Changes to these <em>terms</em>
+      </h2>
+      <p>
+        We may update these Terms from time to time. Continued use of the
+        Services after changes become effective constitutes acceptance of the
+        updated Terms.
+      </p>
+
+      <h2 id="contact">
+        <span class="h-num">§ 11</span><em>Contact</em>
+      </h2>
+      <p>
+        If you have questions about these Terms, write to <a
+          class="inline"
+          href="mailto:support@unionwith.app">support@unionwith.app</a
+        >.
+      </p>
+
+      <div class="ornament" aria-hidden="true">
+        <div class="line"></div>
+        <span class="mark">&#10086;</span>
+        <div class="line"></div>
+      </div>
+    </article>
+  </main>
+
+  <Footer />
 </Layout>
