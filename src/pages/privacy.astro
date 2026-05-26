@@ -1,153 +1,146 @@
 ---
 import Layout from '../layouts/Layout.astro'
 
-const lastUpdated = '18 May 2026'
+const lastUpdated = 'May 2026'
+const contactEmail = 'privacy@unionwith.app'
 ---
 
 <Layout
   title="Privacy"
-  description="Union's privacy promise: what we collect, where it goes, what's never shared."
+  description="Union's privacy policy: what we collect, how we use it, your rights."
 >
   <article class="prose-union">
-    <h1 class="font-prayer text-5xl text-union-charcoal">Privacy</h1>
+    <h1 class="font-prayer text-5xl text-union-charcoal">Privacy Policy</h1>
     <p class="mt-2 text-sm text-union-secondary">
       Last updated: {lastUpdated}
     </p>
 
     <p class="mt-8 text-lg leading-relaxed">
-      This page explains exactly what data Union collects, where it
-      lives, who else sees it, and how to delete it. If anything here is
-      unclear, email
-      <a class="text-union-gold underline" href="mailto:hello@unionwith.app"
-      >hello@unionwith.app</a>.
-    </p>
-
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      The promise
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      What you share in Union is yours. We don&apos;t sell it. We
-      don&apos;t share it. We don&apos;t use it to train AI models.
-    </p>
-
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      What we collect
-    </h2>
-    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
-      <li>
-        <strong>Account details</strong> — your email address (for
-        sign-in) and, if you set one, a name to greet you by.
-      </li>
-      <li>
-        <strong>Check-ins</strong> — the free-text descriptions you
-        write to find a prayer.
-      </li>
-      <li>
-        <strong>Saved prayers and reflections</strong> — the prayers
-        you bookmark to your journal, any reflections you write
-        alongside them, and any &ldquo;answered&rdquo; notes you add.
-      </li>
-      <li>
-        <strong>Profile preferences</strong> — optional fields like your
-        Christian tradition or season of life, used to make the
-        prayers Union suggests fit you better.
-      </li>
-    </ul>
-    <p class="mt-4 text-lg leading-relaxed">
-      We do not collect device identifiers, location, contacts,
-      photos, advertising IDs, or analytics about how you use the app.
-    </p>
-
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Where it lives
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      Everything you create in Union is stored in our Supabase
-      project, hosted in the EU. Database rows are scoped to your
-      account via row-level security — only you (signed in) and
-      Union&apos;s own server can read them.
-    </p>
-
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      The AI vendors
-    </h2>
-    <p class="mt-3 text-lg leading-relaxed">
-      When you tell Union what&apos;s on your heart, your check-in
-      text is sent to two AI providers so we can find prayers that
-      match it:
-    </p>
-    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
-      <li>
-        <strong>OpenAI</strong> — receives your check-in text to
-        compute an embedding (a numeric fingerprint used to find
-        similar prayers in our corpus).
-      </li>
-      <li>
-        <strong>Anthropic</strong> — receives your check-in text plus a
-        short list of candidate prayers, and chooses which fit best
-        plus writes a brief pastoral note.
-      </li>
-    </ul>
-    <p class="mt-4 text-lg leading-relaxed">
-      We deliberately do <em>not</em> send your name, email, or any
-      other identifier with these calls. The vendors see content but
-      cannot link it back to your Union account.
+      At Union (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), we care about your privacy and aim to keep
+      data collection simple, transparent, and minimal.
     </p>
     <p class="mt-4 text-lg leading-relaxed">
-      Both vendors, on their standard API tier, retain the request
-      payload for up to 30 days for abuse-monitoring purposes and
-      then delete it. Neither uses API data to train their models.
+      This Privacy Policy explains what information we collect, how we use it,
+      and your choices when using the Union app and related services
+      (&ldquo;Services&rdquo;).
     </p>
 
     <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Your rights
+      Information We Collect
     </h2>
+
+    <h3 class="mt-6 font-prayer text-2xl text-union-charcoal">
+      Account Information
+    </h3>
+    <p class="mt-3 text-lg leading-relaxed">
+      When you create an account, we may collect:
+    </p>
     <ul class="mt-3 space-y-3 text-lg leading-relaxed">
-      <li>
-        <strong>See your data</strong> — everything Union holds about
-        you is visible inside the app: your name in Settings, your
-        check-ins on Home, your saved prayers in the Journal.
-      </li>
-      <li>
-        <strong>Delete your account</strong> — Settings → Delete
-        account. Type <code>delete</code> to confirm. This removes
-        your account row, every check-in, every saved prayer and
-        reflection, and every related row across our database, in a
-        single transaction.
-      </li>
-      <li>
-        <strong>Vendor copies</strong> — the brief retention windows at
-        OpenAI and Anthropic age out on their own. We cannot force an
-        instant deletion at those vendors but the windows are short
-        (≤30 days) and bounded.
-      </li>
+      <li>Your email address</li>
+      <li>Authentication information used to sign you in securely</li>
     </ul>
 
-    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Children
-    </h2>
+    <h3 class="mt-6 font-prayer text-2xl text-union-charcoal">
+      Usage Information
+    </h3>
     <p class="mt-3 text-lg leading-relaxed">
-      Union is not directed at children under 13. If you believe a
-      child has signed up, email us and we&apos;ll delete the account.
+      We may collect limited information about how you use the app, including:
+    </p>
+    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
+      <li>App interactions and feature usage</li>
+      <li>Device type and app version</li>
+      <li>Diagnostic and crash information</li>
+    </ul>
+
+    <h3 class="mt-6 font-prayer text-2xl text-union-charcoal">
+      Content You Create
+    </h3>
+    <p class="mt-3 text-lg leading-relaxed">
+      If you use journaling, prayer, reflections, notes, or other personal
+      features within Union, the content you create may be stored securely to
+      provide the service to you.
     </p>
 
     <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
-      Changes
+      How We Use Information
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">We use information to:</p>
+    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
+      <li>Provide and improve the app</li>
+      <li>Authenticate and secure your account</li>
+      <li>Personalise your experience</li>
+      <li>Maintain app performance and reliability</li>
+      <li>Respond to support requests</li>
+    </ul>
+    <p class="mt-4 text-lg leading-relaxed">
+      We do not sell your personal information.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Data Storage &amp; Security
     </h2>
     <p class="mt-3 text-lg leading-relaxed">
-      If we change anything material on this page, we&apos;ll update
-      the &ldquo;last updated&rdquo; date above and surface a notice in
-      the app for at least a week.
+      We take reasonable technical and organisational measures to protect your
+      information from unauthorised access, loss, misuse, or disclosure.
+    </p>
+    <p class="mt-4 text-lg leading-relaxed">
+      No online service can guarantee absolute security, but we work to keep
+      your data protected and secure.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Your Rights
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      Depending on your location, you may have rights to:
+    </p>
+    <ul class="mt-3 space-y-3 text-lg leading-relaxed">
+      <li>Access your personal data</li>
+      <li>Correct inaccurate information</li>
+      <li>Request deletion of your data</li>
+      <li>Withdraw consent where applicable</li>
+    </ul>
+    <p class="mt-4 text-lg leading-relaxed">
+      To make a privacy request, contact us at:
+      <a class="text-union-gold underline" href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Data Retention
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      We retain information only for as long as necessary to provide the
+      Services, comply with legal obligations, resolve disputes, and enforce
+      our agreements.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Third-Party Services
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      We use trusted service providers to help operate, maintain, and improve
+      Union.
+    </p>
+    <p class="mt-4 text-lg leading-relaxed">
+      These providers only process information necessary to provide their
+      services to us.
+    </p>
+
+    <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
+      Changes to This Policy
+    </h2>
+    <p class="mt-3 text-lg leading-relaxed">
+      We may update this Privacy Policy from time to time. If we make material
+      changes, we will update the &ldquo;Last updated&rdquo; date above.
     </p>
 
     <h2 class="mt-12 font-prayer text-3xl text-union-charcoal">
       Contact
     </h2>
     <p class="mt-3 text-lg leading-relaxed">
-      Privacy questions, deletion confirmations, or anything else
-      —
-      <a class="text-union-gold underline" href="mailto:hello@unionwith.app"
-      >hello@unionwith.app</a>.
+      If you have any questions about this Privacy Policy or your data,
+      contact:
+      <a class="text-union-gold underline" href={`mailto:${contactEmail}`}>{contactEmail}</a>.
     </p>
   </article>
 </Layout>
