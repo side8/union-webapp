@@ -4,7 +4,9 @@
     "target": {
       "namespace": "android_app",
       "package_name": "app.unionwith",
-      "sha256_cert_fingerprints": ["SHA256-FINGERPRINT-PLACEHOLDER"]
+      "sha256_cert_fingerprints": [
+        "6B:48:B1:7B:64:CF:3C:D0:30:D0:3E:6F:22:1E:E3:65:B2:8D:65:39:B7:10:1C:A5:AC:7E:08:1E:DB:F4:00:85"
+      ]
     }
   }
 ]
