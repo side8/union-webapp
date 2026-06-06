@@ -10,6 +10,13 @@
 // app and skipped this page entirely. By the time the user sees
 // this CTA, they're on web without the app installed (or AASA
 // hasn't verified yet) — so the actionable next step is install.
+//
+// The store buttons use the official App Store and Google Play
+// badge artwork (committed under public/badges/) — brand guidelines
+// require the official lockups rather than custom recreations.
+// Apple and Google badges have different intrinsic aspect ratios,
+// so they are presented at equal HEIGHT, the standard way to show
+// them together.
 
 // App Store numeric ID (6770460200) and Android package
 // (app.unionwith) both match union-app's eas.json / app.json.
@@ -21,13 +28,11 @@
     Install Union and tap the link again — your saved prayer lands in your journal alongside the rest.
   </p>
   <div class="store-links">
-    <a class="store" href="https://apps.apple.com/app/id6770460200">
-      <span class="store-label">Download on the</span>
-      <span class="store-name">App Store</span>
+    <a class="store-badge" href="https://apps.apple.com/app/id6770460200">
+      <img src="/badges/app-store-badge.svg" alt="Download on the App Store" />
     </a>
-    <a class="store" href="https://play.google.com/store/apps/details?id=app.unionwith">
-      <span class="store-label">Get it on</span>
-      <span class="store-name">Google Play</span>
+    <a class="store-badge" href="https://play.google.com/store/apps/details?id=app.unionwith">
+      <img src="/badges/google-play-badge.png" alt="Get it on Google Play" />
     </a>
   </div>
 </section>
@@ -52,26 +57,18 @@
   .store-links {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 16px;
   }
-  .store {
+  .store-badge {
     display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px 24px;
-    border-radius: 10px;
-    background: var(--ink);
-    color: var(--paper);
-    text-decoration: none;
-    font-family: var(--ui-font);
+    /* Clear space around each badge per brand guidelines. */
+    padding: 4px;
   }
-  .store-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .store-name {
-    font-size: 18px;
-    font-weight: 600;
+  .store-badge img {
+    /* Equal height, intrinsic aspect ratio preserved per badge. */
+    height: 48px;
+    width: auto;
+    display: block;
   }
 </style>
