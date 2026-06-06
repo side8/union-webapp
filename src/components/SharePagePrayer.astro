@@ -1,0 +1,68 @@
+---
+interface Props {
+  title: string
+  body: string
+  fromLabel: string | null
+  expiresAt: string
+}
+
+const { title, body, fromLabel, expiresAt } = Astro.props
+
+function formatExpiry(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+function daysUntil(iso: string): number {
+  return Math.max(
+    0,
+    Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000),
+  )
+}
+
+const days = daysUntil(expiresAt)
+---
+
+<article class="prayer-card">
+  <h1>{title}</h1>
+  <p class="body">{body}</p>
+  {fromLabel && <p class="from"><em>From {fromLabel}</em></p>}
+  <p class="expiry">Expires in {days} day{days === 1 ? '' : 's'} ({formatExpiry(expiresAt)}).</p>
+</article>
+
+<style>
+  .prayer-card {
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 48px 40px;
+    margin-bottom: 48px;
+  }
+  .prayer-card h1 {
+    font-family: var(--display-font);
+    font-size: 36px;
+    line-height: 1.1;
+    margin: 0 0 24px 0;
+    color: var(--ink);
+  }
+  .body {
+    font-family: var(--body-font);
+    font-size: 20px;
+    line-height: 1.55;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .from {
+    margin-top: 24px;
+    color: var(--ink-soft);
+    font-size: 16px;
+  }
+  .expiry {
+    margin-top: 32px;
+    color: var(--ink-mute);
+    font-family: var(--ui-font);
+    font-size: 14px;
+  }
+</style>

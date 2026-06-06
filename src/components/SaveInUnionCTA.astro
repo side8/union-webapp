@@ -1,0 +1,77 @@
+---
+// Single "Save to Union" CTA shown only on alive share pages.
+// Per Plan C decision 1, the public page never asks for login —
+// saving happens IN the app, after install. This block frames the
+// install step as "Save to Union" so the user understands the
+// value they get from installing.
+//
+// If Union is installed and AASA-verified, the universal-link tap
+// from the original messaging app would already have opened the
+// app and skipped this page entirely. By the time the user sees
+// this CTA, they're on web without the app installed (or AASA
+// hasn't verified yet) — so the actionable next step is install.
+
+// App Store ID is a placeholder pending iOS submission. The Android
+// package matches union-app/app.json.
+---
+
+<section class="cta-card">
+  <h2>Save this in Union</h2>
+  <p class="hint">
+    Install Union and tap the link again — your saved prayer lands in your journal alongside the rest.
+  </p>
+  <div class="store-links">
+    <a class="store" href="https://apps.apple.com/app/id-PLACEHOLDER">
+      <span class="store-label">Download on the</span>
+      <span class="store-name">App Store</span>
+    </a>
+    <a class="store" href="https://play.google.com/store/apps/details?id=app.unionwith">
+      <span class="store-label">Get it on</span>
+      <span class="store-name">Google Play</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .cta-card {
+    border-top: 1px solid var(--rule);
+    padding-top: 48px;
+    margin-top: 48px;
+  }
+  .cta-card h2 {
+    font-family: var(--display-font);
+    font-size: 24px;
+    line-height: 1.2;
+    margin: 0 0 8px 0;
+    color: var(--ink);
+  }
+  .hint {
+    color: var(--ink-soft);
+    margin: 0 0 24px 0;
+  }
+  .store-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .store {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px;
+    border-radius: 10px;
+    background: var(--ink);
+    color: var(--paper);
+    text-decoration: none;
+    font-family: var(--ui-font);
+  }
+  .store-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .store-name {
+    font-size: 18px;
+    font-weight: 600;
+  }
+</style>

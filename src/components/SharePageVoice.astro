@@ -1,0 +1,77 @@
+---
+interface Props {
+  audioUrl: string | null
+  fromLabel: string | null
+  expiresAt: string
+}
+
+const { audioUrl, fromLabel, expiresAt } = Astro.props
+
+function formatExpiry(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+function daysUntil(iso: string): number {
+  return Math.max(
+    0,
+    Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000),
+  )
+}
+
+const days = daysUntil(expiresAt)
+---
+
+<article class="voice-card">
+  <h1>A voice prayer</h1>
+  {audioUrl ? (
+    <audio controls preload="metadata" src={audioUrl}>
+      Your browser does not support audio playback.
+    </audio>
+  ) : (
+    <p class="audio-unavailable">
+      We couldn't load the audio just now. Install Union to listen and save it
+      to your journal.
+    </p>
+  )}
+  {fromLabel && <p class="from"><em>From {fromLabel}</em></p>}
+  <p class="expiry">Expires in {days} day{days === 1 ? '' : 's'} ({formatExpiry(expiresAt)}).</p>
+</article>
+
+<style>
+  .voice-card {
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 48px 40px;
+    margin-bottom: 48px;
+  }
+  .voice-card h1 {
+    font-family: var(--display-font);
+    font-size: 36px;
+    line-height: 1.1;
+    margin: 0 0 24px 0;
+    color: var(--ink);
+  }
+  .voice-card audio {
+    width: 100%;
+    margin: 16px 0;
+  }
+  .audio-unavailable {
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .from {
+    margin-top: 24px;
+    color: var(--ink-soft);
+    font-size: 16px;
+  }
+  .expiry {
+    margin-top: 32px;
+    color: var(--ink-mute);
+    font-family: var(--ui-font);
+    font-size: 14px;
+  }
+</style>
