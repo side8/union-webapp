@@ -12,7 +12,8 @@
     "astro": "astro",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "astro check"
+    "gen:types": "wrangler types",
+    "typecheck": "wrangler types && astro check"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.6.1",

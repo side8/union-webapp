@@ -1,4 +1,4 @@
-import type { ResolvedShareLink } from './share-link'
+import { resolveShareLink, type ResolvedShareLink } from './share-link'
 
 // Decision logic for the /share/[token] route, extracted so we can
 // unit-test it without an Astro SSR harness. The .astro file is a
@@ -101,5 +101,35 @@ export function buildSharePageView(resolved: ResolvedShareLink): SharePageView {
     description: 'This share link has expired or is no longer active.',
     component: 'dead',
     showCTA: false,
+  }
+}
+
+// The route needs both the rendering decision (SharePageView) AND
+// the resolved link itself — the voice/prayer leaf components are fed
+// the prayer fields (audio_url, body, from_label, expires_at) off the
+// alive link. So the orchestrator surfaces both, spreading the view's
+// fields and carrying `resolved` for the alive branches.
+export type ShareViewResult = SharePageView & { resolved: ResolvedShareLink }
+
+function toResult(resolved: ResolvedShareLink): ShareViewResult {
+  return { ...buildSharePageView(resolved), resolved }
+}
+
+// Orchestrates the whole /share/[token] decision: rate-limit →
+// creds → resolve → view. Wrapped so the public route NEVER throws
+// a 500 — any failure renders the opaque dead state (spec §3).
+export async function resolveShareView(
+  env: ShareRouteEnv | undefined,
+  token: string,
+  ip: string,
+): Promise<ShareViewResult> {
+  try {
+    if (await shouldRateLimit(env, ip)) return toResult({ kind: 'dead' })
+    const creds = await resolveSupabaseCreds(env)
+    if (!creds) return toResult({ kind: 'dead' })
+    const resolved = await resolveShareLink(token, creds)
+    return toResult(resolved)
+  } catch {
+    return toResult({ kind: 'dead' })
   }
 }
