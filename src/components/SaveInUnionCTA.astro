@@ -28,10 +28,10 @@
     Install Union and tap the link again — your saved prayer lands in your journal alongside the rest.
   </p>
   <div class="store-links">
-    <a class="store-badge" href="https://apps.apple.com/app/id6770460200">
+    <a class="store-badge store-badge--apple" href="https://apps.apple.com/app/id6770460200">
       <img src="/badges/app-store-badge.svg" alt="Download on the App Store" />
     </a>
-    <a class="store-badge" href="https://play.google.com/store/apps/details?id=app.unionwith">
+    <a class="store-badge store-badge--google" href="https://play.google.com/store/apps/details?id=app.unionwith">
       <img src="/badges/google-play-badge.png" alt="Get it on Google Play" />
     </a>
   </div>
@@ -66,9 +66,18 @@
     padding: 4px;
   }
   .store-badge img {
-    /* Equal height, intrinsic aspect ratio preserved per badge. */
-    height: 48px;
     width: auto;
     display: block;
+  }
+  /* Per-badge heights, not equal heights: the official badges have
+     different proportions (the App Store lockup is squarer, Google
+     Play wider + more colour-heavy), so equal pixel height makes
+     Google read as larger. Sizing Google a little shorter than the
+     App Store badge balances the two into a matched pair. */
+  .store-badge--apple img {
+    height: 48px;
+  }
+  .store-badge--google img {
+    height: 40px;
   }
 </style>
