@@ -1,10 +1,21 @@
-import { afterEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   buildSharePageView,
+  resolveShareView,
   resolveSupabaseCreds,
   shouldRateLimit,
 } from './share-page'
+import { resolveShareLink } from './share-link'
 import type { ResolvedShareLink } from './share-link'
+
+// resolveShareView orchestrates rate-limit -> creds -> resolveShareLink
+// -> view. Mock the resolver so these cases need no real Supabase /
+// network: we drive its return value (or make it throw) per case and
+// assert the routing decision + that it's only called when it should
+// be.
+vi.mock('./share-link', () => ({
+  resolveShareLink: vi.fn(),
+}))
 
 // Shared fixtures so the case-by-case asserts read clearly.
 const aliveCorpus: ResolvedShareLink = {
@@ -171,5 +182,88 @@ describe('resolveSupabaseCreds', () => {
       url: 'https://local.supabase.co',
       anonKey: 'local-anon',
     })
+  })
+})
+
+describe('resolveShareView', () => {
+  const resolveShareLinkMock = vi.mocked(resolveShareLink)
+  const secret = (value: string) => ({ get: () => Promise.resolve(value) })
+  const allowLimit = () => ({
+    limit: vi.fn().mockResolvedValue({ success: true }),
+  })
+
+  // env where rate-limit allows AND both Supabase secrets resolve —
+  // the only path that reaches resolveShareLink.
+  const fullEnv = () => ({
+    SHARE_RATE_LIMIT: allowLimit(),
+    SUPABASE_URL: secret('https://x.supabase.co'),
+    SUPABASE_ANON_KEY: secret('anon-key'),
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Default: no import.meta.env fallback, so creds come solely from
+    // bindings unless a case opts in.
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('SUPABASE_ANON_KEY', '')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  test('rate-limited → dead, CTA hidden, resolver never called', async () => {
+    const env = {
+      SHARE_RATE_LIMIT: { limit: vi.fn().mockResolvedValue({ success: false }) },
+      SUPABASE_URL: secret('https://x.supabase.co'),
+      SUPABASE_ANON_KEY: secret('anon-key'),
+    }
+    const view = await resolveShareView(env, 'aaaaaaaaaa', '1.2.3.4')
+    expect(view.component).toBe('dead')
+    expect(view.showCTA).toBe(false)
+    expect(resolveShareLinkMock).not.toHaveBeenCalled()
+  })
+
+  test('no creds → dead, resolver never called', async () => {
+    // Rate-limit allows, but no Supabase bindings and the
+    // import.meta.env fallback is stubbed empty in beforeEach.
+    const env = { SHARE_RATE_LIMIT: allowLimit() }
+    const view = await resolveShareView(env, 'aaaaaaaaaa', '1.2.3.4')
+    expect(view.component).toBe('dead')
+    expect(view.showCTA).toBe(false)
+    expect(resolveShareLinkMock).not.toHaveBeenCalled()
+  })
+
+  test('happy path → prayer, CTA shown, resolver called with (token, creds)', async () => {
+    resolveShareLinkMock.mockResolvedValue({
+      kind: 'alive',
+      prayer_kind: 'corpus',
+      title: 'A Collect for Aid',
+      body: 'Lighten our darkness…',
+      from_label: 'Sarah',
+      audio_url: null,
+      expires_at: '2099-01-01T00:00:00Z',
+    })
+    const view = await resolveShareView(fullEnv(), 'aaaaaaaaaa', '1.2.3.4')
+    expect(view.component).toBe('prayer')
+    expect(view.showCTA).toBe(true)
+    expect(resolveShareLinkMock).toHaveBeenCalledWith('aaaaaaaaaa', {
+      url: 'https://x.supabase.co',
+      anonKey: 'anon-key',
+    })
+  })
+
+  test('resolver throws → dead (catch-all proves the route cannot 500)', async () => {
+    resolveShareLinkMock.mockRejectedValue(new Error('supabase exploded'))
+    const view = await resolveShareView(fullEnv(), 'aaaaaaaaaa', '1.2.3.4')
+    expect(view.component).toBe('dead')
+    expect(view.showCTA).toBe(false)
+  })
+
+  test('env undefined (local dev, no Worker runtime) → dead, no throw', async () => {
+    const view = await resolveShareView(undefined, 'aaaaaaaaaa', 'ip')
+    expect(view.component).toBe('dead')
+    expect(view.showCTA).toBe(false)
+    expect(resolveShareLinkMock).not.toHaveBeenCalled()
   })
 })

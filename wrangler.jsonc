@@ -23,6 +23,13 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
+  // Persist Workers Logs in production. This is how the share-route
+  // 500 (Astro.locals.runtime.env removed in Astro v6) was diagnosed
+  // — keep it on so future regressions surface in the dashboard.
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
   "secrets_store_secrets": [
     {
       "binding": "SUPABASE_URL",
