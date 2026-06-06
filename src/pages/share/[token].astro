@@ -6,15 +6,36 @@ import SharePageDead from '../../components/SharePageDead.astro'
 import SaveInUnionCTA from '../../components/SaveInUnionCTA.astro'
 import ShareMeta from '../../components/ShareMeta.astro'
 import { resolveShareLink } from '../../lib/share-link'
-import { buildSharePageView } from '../../lib/share-page'
+import {
+  buildSharePageView,
+  shouldRateLimit,
+  type ShareRouteEnv,
+} from '../../lib/share-page'
 
 // SSR-only — this route resolves a per-recipient token at request
 // time in the Cloudflare Worker. Marketing pages stay static; this
 // one opts out via prerender = false.
 export const prerender = false
 
+// The @astrojs/cloudflare adapter exposes Cloudflare bindings via
+// Astro.locals.runtime.env. In `npm run dev` (no Cloudflare runtime)
+// `runtime` is undefined — the helper short-circuits in that case so
+// dev works without Wrangler.
+type Locals = { runtime?: { env?: ShareRouteEnv } }
+const env = (Astro.locals as Locals).runtime?.env
+
 const token = Astro.params.token ?? ''
-const resolved = await resolveShareLink(token)
+const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown'
+
+// Rate-limit BEFORE hitting Supabase so probers can't use this route
+// to bulk-scan tokens. Rate-limited requests render the dead-state
+// body (NOT a 429) — returning 429 would leak the limit signal and
+// tell probers when they've crossed the threshold. Spec §3
+// opaque-dead contract: probers must not be able to distinguish.
+const rateLimited = await shouldRateLimit(env, ip)
+const resolved = rateLimited
+  ? ({ kind: 'dead' } as const)
+  : await resolveShareLink(token)
 const view = buildSharePageView(resolved)
 
 // noindex header (belt-and-braces with the <meta> tag in ShareMeta).

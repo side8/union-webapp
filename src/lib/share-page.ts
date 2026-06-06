@@ -5,6 +5,31 @@ import type { ResolvedShareLink } from './share-link'
 // thin renderer that calls buildSharePageView() and branches on
 // view.component.
 
+// Minimal shape of the Workers Rate Limiting binding (GA form, see
+// https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
+// Kept local — we don't want to pull @cloudflare/workers-types into
+// the surface area of this file just for one binding.
+export interface RateLimitBinding {
+  limit: (opts: { key: string }) => Promise<{ success: boolean }>
+}
+
+export interface ShareRouteEnv {
+  SHARE_RATE_LIMIT?: RateLimitBinding
+}
+
+// Returns true if the request should be rate-limited (treated as
+// dead). Defensive on the binding: in local `npm run dev` there's
+// no Cloudflare runtime and the binding is undefined, in which case
+// we let everything through.
+export async function shouldRateLimit(
+  env: ShareRouteEnv | undefined,
+  ip: string,
+): Promise<boolean> {
+  if (!env?.SHARE_RATE_LIMIT) return false
+  const { success } = await env.SHARE_RATE_LIMIT.limit({ key: `share:${ip}` })
+  return !success
+}
+
 export interface SharePageView {
   // Page title fed to <Layout title=...>. NOTE: Layout.astro
   // auto-appends " · Union" — these strings must NOT include it.

@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest'
-import { buildSharePageView } from './share-page'
+import { describe, expect, test, vi } from 'vitest'
+import { buildSharePageView, shouldRateLimit } from './share-page'
 import type { ResolvedShareLink } from './share-link'
 
 // Shared fixtures so the case-by-case asserts read clearly.
@@ -87,5 +87,34 @@ describe('buildSharePageView', () => {
     // Description must not leak whether the link expired, was
     // retracted, or never existed.
     expect(view.description).toMatch(/expired or is no longer active/)
+  })
+})
+
+describe('shouldRateLimit', () => {
+  test('returns false when env is undefined (local `npm run dev`, no Cloudflare runtime)', async () => {
+    expect(await shouldRateLimit(undefined, '1.2.3.4')).toBe(false)
+  })
+
+  test('returns false when SHARE_RATE_LIMIT binding is absent', async () => {
+    expect(await shouldRateLimit({}, '1.2.3.4')).toBe(false)
+  })
+
+  test('returns false when binding allows the request (success:true)', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: true })
+    const env = { SHARE_RATE_LIMIT: { limit } }
+    expect(await shouldRateLimit(env, '1.2.3.4')).toBe(false)
+  })
+
+  test('returns true when binding rejects the request (success:false)', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false })
+    const env = { SHARE_RATE_LIMIT: { limit } }
+    expect(await shouldRateLimit(env, '1.2.3.4')).toBe(true)
+  })
+
+  test('keys the limit call by `share:${ip}` so different IPs get independent buckets', async () => {
+    const limit = vi.fn().mockResolvedValue({ success: true })
+    const env = { SHARE_RATE_LIMIT: { limit } }
+    await shouldRateLimit(env, '1.2.3.4')
+    expect(limit).toHaveBeenCalledWith({ key: 'share:1.2.3.4' })
   })
 })

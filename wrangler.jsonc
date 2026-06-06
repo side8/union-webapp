@@ -22,5 +22,23 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"
-  }
+  },
+  "ratelimits": [
+    {
+      // SHARE_RATE_LIMIT: 60 requests / 60 seconds, per Cloudflare
+      // datacentre, per key (we key by CF-Connecting-IP in the share
+      // route). namespace_id is an integer (encoded as string) that
+      // is unique within this Cloudflare account; the Worker runtime
+      // allocates state on first deploy — no separate provisioning
+      // step is required. Workers Rate Limiting went GA on
+      // 2025-09-19, so this is the top-level `ratelimits` form, not
+      // the pre-GA `unsafe.bindings` form.
+      "name": "SHARE_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ]
 }
