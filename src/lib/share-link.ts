@@ -1,6 +1,11 @@
-import { supabase } from './supabase'
+import { createSupabaseClient } from './supabase'
 
 export type SharePrayerKind = 'corpus' | 'composed_text' | 'composed_voice'
+
+export interface SupabaseCreds {
+  url: string
+  anonKey: string
+}
 
 export type ResolvedShareLink =
   | {
@@ -31,8 +36,13 @@ export function isValidShareToken(token: string): boolean {
 // a short-TTL signed URL.
 export async function resolveShareLink(
   token: string,
+  creds: SupabaseCreds,
 ): Promise<ResolvedShareLink> {
+  // Token-format short-circuit FIRST — the cheap-probe defence. An
+  // invalid token never builds a client or issues any network call.
   if (!isValidShareToken(token)) return { kind: 'dead' }
+
+  const supabase = createSupabaseClient(creds.url, creds.anonKey)
 
   const { data, error } = await supabase
     .from('shared_prayer_links')
@@ -73,7 +83,7 @@ export async function resolveShareLink(
 
   let audio_url: string | null = null
   if (prayer_kind === 'composed_voice' && data.payload_audio_path) {
-    audio_url = await fetchSignedAudioUrl(token)
+    audio_url = await fetchSignedAudioUrl(token, creds)
   }
 
   return {
@@ -87,17 +97,20 @@ export async function resolveShareLink(
   }
 }
 
-async function fetchSignedAudioUrl(token: string): Promise<string | null> {
+async function fetchSignedAudioUrl(
+  token: string,
+  creds: SupabaseCreds,
+): Promise<string | null> {
   // Server-side-only call. The Cloudflare Worker (this code path
   // during SSR) calls the public share-audio-url edge function.
-  // No PUBLIC_ env vars; browser never makes this call.
-  const url = `${import.meta.env.SUPABASE_URL}/functions/v1/share-audio-url`
+  // Creds arrive per-request; browser never makes this call.
+  const url = `${creds.url}/functions/v1/share-audio-url`
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        apikey: import.meta.env.SUPABASE_ANON_KEY as string,
+        apikey: creds.anonKey,
       },
       body: JSON.stringify({ token }),
     })

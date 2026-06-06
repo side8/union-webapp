@@ -8,6 +8,7 @@ import ShareMeta from '../../components/ShareMeta.astro'
 import { resolveShareLink } from '../../lib/share-link'
 import {
   buildSharePageView,
+  resolveSupabaseCreds,
   shouldRateLimit,
   type ShareRouteEnv,
 } from '../../lib/share-page'
@@ -33,9 +34,15 @@ const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown'
 // tell probers when they've crossed the threshold. Spec §3
 // opaque-dead contract: probers must not be able to distinguish.
 const rateLimited = await shouldRateLimit(env, ip)
-const resolved = rateLimited
-  ? ({ kind: 'dead' } as const)
-  : await resolveShareLink(token)
+// Resolve Supabase creds from the runtime Secrets Store bindings
+// (with a local-dev fallback to import.meta.env). If creds can't be
+// resolved we render the opaque dead state rather than throwing a
+// stack to the user — same contract as a rate-limited request.
+const creds = rateLimited ? null : await resolveSupabaseCreds(env)
+const resolved =
+  rateLimited || !creds
+    ? ({ kind: 'dead' } as const)
+    : await resolveShareLink(token, creds)
 const view = buildSharePageView(resolved)
 
 // noindex header (belt-and-braces with the <meta> tag in ShareMeta).

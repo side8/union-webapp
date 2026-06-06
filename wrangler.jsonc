@@ -23,6 +23,18 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
+  "secrets_store_secrets": [
+    {
+      "binding": "SUPABASE_URL",
+      "store_id": "111de8a007cc4f76a2869e9ee8a2d67c",
+      "secret_name": "SUPABASE_URL"
+    },
+    {
+      "binding": "SUPABASE_ANON_KEY",
+      "store_id": "111de8a007cc4f76a2869e9ee8a2d67c",
+      "secret_name": "SUPABASE_ANON_KEY"
+    }
+  ],
   "ratelimits": [
     {
       // SHARE_RATE_LIMIT: 60 requests / 60 seconds, per Cloudflare

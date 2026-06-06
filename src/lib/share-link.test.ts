@@ -1,22 +1,30 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-// Set env vars BEFORE importing share-link (or supabase will throw).
+// Set env vars BEFORE importing share-link (keeps any import.meta.env
+// reads deterministic across the suite).
 vi.stubEnv('SUPABASE_URL', 'https://example.supabase.co')
 vi.stubEnv('SUPABASE_ANON_KEY', 'anon-key-stub')
 
 // Mock the supabase module BEFORE importing share-link.
-// vi.mock is hoisted above all imports/consts, so we hoist the
-// mock fns alongside it via vi.hoisted to keep them in scope.
-const { maybeSingle, eq, select, fromMock } = vi.hoisted(() => {
-  const maybeSingle = vi.fn()
-  const eq = vi.fn().mockReturnValue({ maybeSingle })
-  const select = vi.fn().mockReturnValue({ eq })
-  const fromMock = vi.fn().mockReturnValue({ select })
-  return { maybeSingle, eq, select, fromMock }
-})
+// resolveShareLink now builds the client via the createSupabaseClient
+// factory, so we mock that to return a chainable stub client. The
+// chain (.from().select().eq().maybeSingle()) is preserved; per-test
+// data is fed via maybeSingle. vi.mock is hoisted above all
+// imports/consts, so we hoist the mock fns alongside it via
+// vi.hoisted to keep them in scope.
+const { maybeSingle, eq, select, fromMock, createClientMock } = vi.hoisted(
+  () => {
+    const maybeSingle = vi.fn()
+    const eq = vi.fn().mockReturnValue({ maybeSingle })
+    const select = vi.fn().mockReturnValue({ eq })
+    const fromMock = vi.fn().mockReturnValue({ select })
+    const createClientMock = vi.fn().mockReturnValue({ from: fromMock })
+    return { maybeSingle, eq, select, fromMock, createClientMock }
+  },
+)
 
 vi.mock('./supabase', () => ({
-  supabase: { from: fromMock },
+  createSupabaseClient: createClientMock,
 }))
 
 const fetchMock = vi.fn()
@@ -24,11 +32,14 @@ vi.stubGlobal('fetch', fetchMock)
 
 import { resolveShareLink, isValidShareToken } from './share-link'
 
+const creds = { url: 'https://x.supabase.co', anonKey: 'anon' }
+
 beforeEach(() => {
   maybeSingle.mockReset()
   eq.mockClear()
   select.mockClear()
   fromMock.mockClear()
+  createClientMock.mockClear()
   fetchMock.mockReset()
 })
 
@@ -55,15 +66,18 @@ describe('isValidShareToken', () => {
 describe('resolveShareLink', () => {
   const validToken = 'AbCdEf1234'
 
-  test('returns kind=dead for invalid tokens without hitting supabase', async () => {
-    const out = await resolveShareLink('not-valid')
+  test('returns kind=dead for invalid tokens without building a client or hitting supabase', async () => {
+    const out = await resolveShareLink('not-valid', creds)
     expect(out).toEqual({ kind: 'dead' })
+    // Cheap-probe defence: the token-format short-circuit runs before
+    // any client construction or network call.
+    expect(createClientMock).not.toHaveBeenCalled()
     expect(fromMock).not.toHaveBeenCalled()
   })
 
   test('returns kind=dead when the row is missing', async () => {
     maybeSingle.mockResolvedValue({ data: null, error: null })
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
     expect(out).toEqual({ kind: 'dead' })
   })
 
@@ -77,7 +91,7 @@ describe('resolveShareLink', () => {
       },
       error: null,
     })
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
     expect(out).toEqual({ kind: 'dead' })
   })
 
@@ -91,7 +105,7 @@ describe('resolveShareLink', () => {
       },
       error: null,
     })
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
     expect(out).toEqual({ kind: 'dead' })
   })
 
@@ -109,7 +123,12 @@ describe('resolveShareLink', () => {
       },
       error: null,
     })
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
+    // Client is built per request from the passed creds.
+    expect(createClientMock).toHaveBeenCalledWith(
+      'https://x.supabase.co',
+      'anon',
+    )
     expect(out).toEqual({
       kind: 'alive',
       prayer_kind: 'corpus',
@@ -135,7 +154,7 @@ describe('resolveShareLink', () => {
       },
       error: null,
     })
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
     if (out.kind !== 'alive') throw new Error('expected alive')
     expect(out.body).toBe('O God of peace…')
     expect(out.audio_url).toBeNull()
@@ -161,12 +180,22 @@ describe('resolveShareLink', () => {
       json: () => Promise.resolve({ audio_url: 'https://signed/x?ttl=300' }),
     } as never)
 
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
     if (out.kind !== 'alive') throw new Error('expected alive')
     expect(out.audio_url).toBe('https://signed/x?ttl=300')
     expect(out.from_label).toBeNull()
     expect(out.body).toBe('')
     expect(out.title).toBe('Voice prayer')
+    // fetchSignedAudioUrl uses the passed creds, not import.meta.env:
+    // the edge-function URL is derived from creds.url and the apikey
+    // header from creds.anonKey.
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://x.supabase.co/functions/v1/share-audio-url',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ apikey: 'anon' }),
+      }),
+    )
   })
 
   test('composed_voice with audio-url endpoint failure → returns alive but null audio_url', async () => {
@@ -189,7 +218,7 @@ describe('resolveShareLink', () => {
       json: () => Promise.resolve({ error: 'sign failed' }),
     } as never)
 
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
     if (out.kind !== 'alive') throw new Error('expected alive')
     expect(out.audio_url).toBeNull()
   })
@@ -210,7 +239,7 @@ describe('resolveShareLink', () => {
       },
       error: null,
     })
-    const out = await resolveShareLink(validToken)
+    const out = await resolveShareLink(validToken, creds)
     expect(out).toEqual({ kind: 'dead' })
   })
 })

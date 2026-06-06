@@ -13,8 +13,41 @@ export interface RateLimitBinding {
   limit: (opts: { key: string }) => Promise<{ success: boolean }>
 }
 
+// Cloudflare Secrets Store binding runtime shape: an object with an
+// async get() that resolves the secret string. NOT a plain string,
+// and NOT on import.meta.env — it arrives per-request on
+// Astro.locals.runtime.env.
+export interface SecretsStoreSecret {
+  get(): Promise<string>
+}
+
 export interface ShareRouteEnv {
   SHARE_RATE_LIMIT?: RateLimitBinding
+  SUPABASE_URL?: SecretsStoreSecret
+  SUPABASE_ANON_KEY?: SecretsStoreSecret
+}
+
+// Resolve Supabase credentials for the SSR share route.
+// Production: read the Secrets Store bindings (async .get()).
+// Local dev (`npm run dev`, no Cloudflare runtime / no bindings):
+// fall back to Vite build-time env from a local .env so dev still
+// works. Returns null when neither source yields both values — the
+// route then renders the opaque dead state rather than throwing.
+export async function resolveSupabaseCreds(
+  env: ShareRouteEnv | undefined,
+): Promise<{ url: string; anonKey: string } | null> {
+  if (env?.SUPABASE_URL && env?.SUPABASE_ANON_KEY) {
+    const [url, anonKey] = await Promise.all([
+      env.SUPABASE_URL.get(),
+      env.SUPABASE_ANON_KEY.get(),
+    ])
+    if (url && anonKey) return { url, anonKey }
+  }
+  // Local dev fallback: Vite build-time env from a local .env.
+  const url = import.meta.env.SUPABASE_URL
+  const anonKey = import.meta.env.SUPABASE_ANON_KEY
+  if (url && anonKey) return { url, anonKey }
+  return null
 }
 
 // Returns true if the request should be rate-limited (treated as

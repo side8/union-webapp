@@ -1,5 +1,9 @@
-import { describe, expect, test, vi } from 'vitest'
-import { buildSharePageView, shouldRateLimit } from './share-page'
+import { afterEach, describe, expect, test, vi } from 'vitest'
+import {
+  buildSharePageView,
+  resolveSupabaseCreds,
+  shouldRateLimit,
+} from './share-page'
 import type { ResolvedShareLink } from './share-link'
 
 // Shared fixtures so the case-by-case asserts read clearly.
@@ -116,5 +120,56 @@ describe('shouldRateLimit', () => {
     const env = { SHARE_RATE_LIMIT: { limit } }
     await shouldRateLimit(env, '1.2.3.4')
     expect(limit).toHaveBeenCalledWith({ key: 'share:1.2.3.4' })
+  })
+})
+
+describe('resolveSupabaseCreds', () => {
+  // We control the import.meta.env fallback explicitly via
+  // vi.stubEnv so the bindings-vs-fallback branches are deterministic
+  // regardless of what Vite injects in the test environment.
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  const secret = (value: string) => ({ get: () => Promise.resolve(value) })
+
+  test('both Secrets Store bindings present → awaits .get() and returns creds', async () => {
+    // Force the fallback empty so we KNOW the result came from the
+    // bindings, not import.meta.env.
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('SUPABASE_ANON_KEY', '')
+    const env = {
+      SUPABASE_URL: secret('https://x.supabase.co'),
+      SUPABASE_ANON_KEY: secret('anon-from-store'),
+    }
+    const out = await resolveSupabaseCreds(env)
+    expect(out).toEqual({
+      url: 'https://x.supabase.co',
+      anonKey: 'anon-from-store',
+    })
+  })
+
+  test('bindings absent + no import.meta.env fallback → returns null', async () => {
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('SUPABASE_ANON_KEY', '')
+    expect(await resolveSupabaseCreds(undefined)).toBeNull()
+    expect(await resolveSupabaseCreds({})).toBeNull()
+  })
+
+  test('one binding present, other missing → falls through to (empty) fallback → null', async () => {
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('SUPABASE_ANON_KEY', '')
+    const env = { SUPABASE_URL: secret('https://x.supabase.co') }
+    expect(await resolveSupabaseCreds(env)).toBeNull()
+  })
+
+  test('no bindings but import.meta.env set (local dev) → returns env creds', async () => {
+    vi.stubEnv('SUPABASE_URL', 'https://local.supabase.co')
+    vi.stubEnv('SUPABASE_ANON_KEY', 'local-anon')
+    const out = await resolveSupabaseCreds({})
+    expect(out).toEqual({
+      url: 'https://local.supabase.co',
+      anonKey: 'local-anon',
+    })
   })
 })
