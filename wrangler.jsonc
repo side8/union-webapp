@@ -1,26 +1,26 @@
 {
-  // Cloudflare Workers config for deploying the Astro static build via
-  // Workers with Static Assets (the "Workers Builds" path that replaces
-  // classic Pages on new projects).
+  // Cloudflare Workers — hybrid SSR after the @astrojs/cloudflare
+  // adapter landed for /share/[token] (Plan C). Marketing pages
+  // stay static; the share route runs in the Worker at request
+  // time.
   //
-  // Build chain:
-  //   Cloudflare runs `npm run build` → outputs ./dist → deploy command
-  //   `npx wrangler deploy` reads this file, uploads ./dist to Cloudflare
-  //   Workers Static Assets, no JS runtime needed.
+  // This root wrangler.jsonc is the *input* config the adapter
+  // reads via @cloudflare/vite-plugin. On build the adapter writes
+  // a deployment-ready wrangler.json into dist/server/ (or
+  // dist/client/ if every page prerenders) with `main` and the
+  // ASSETS binding pre-wired. `wrangler deploy` is run from that
+  // generated directory.
   //
-  // If we ever need server-side handling (form posts, API routes), add
-  // a `main` entry pointing at a Worker script — for now we're 100%
-  // static.
+  // nodejs_compat is required by @supabase/supabase-js (it imports
+  // node:* modules at runtime).
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "union-webapp",
   "compatibility_date": "2026-05-18",
-  // unionwith.app is the canonical URL (Workers Custom Domain bound
-  // 2026-05-18). Disable the `*.workers.dev` subdomain and per-deploy
-  // preview URLs so traffic only flows through the custom domain;
-  // also prevents accidental discovery / indexing of the deploy URL.
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "binding": "ASSETS"
   }
 }

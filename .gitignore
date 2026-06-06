@@ -2,6 +2,8 @@
 dist/
 # generated types
 .astro/
+# wrangler local state (dev runtime cache, deploy bundle staging)
+.wrangler/
 
 # dependencies
 node_modules/
@@ -15,7 +17,11 @@ pnpm-debug.log*
 
 # environment variables
 .env
+.env.local
 .env.production
+# Cloudflare dev vars (consumed by @cloudflare/vite-plugin in `npm run dev`)
+.dev.vars
+.dev.vars.local
 
 # macOS-specific files
 .DS_Store
