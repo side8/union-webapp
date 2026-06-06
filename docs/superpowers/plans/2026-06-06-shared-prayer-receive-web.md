@@ -4,29 +4,34 @@
 
 **Goal:** Ship the public `https://unionwith.app/share/<token>` page (the fallback for recipients tapping a share link without Union installed) plus the AASA + assetlinks files iOS and Android need to verify the universal-link claim, plus a small Supabase precursor that mints short-TTL audio signed URLs for voice shares.
 
-**Architecture:** union-webapp switches from 100% static Astro to **hybrid SSR via the `@astrojs/cloudflare` adapter** — just the `/share/[token]` route is server-rendered on the Cloudflare Worker; every other page (home, privacy, terms, support) keeps `prerender = true` and stays statically built. The share route resolves the token by `select`ing from `public.shared_prayer_links` with the anon key (the migration-026 RLS policy `"Shared links: anyone read alive"` already grants this for alive rows). For voice shares, the route calls a new public `share-audio-url` edge function on `union-supabase` to mint a 5-minute signed URL. AASA + assetlinks files ship as static `public/.well-known/*` assets.
+**Architecture:** union-webapp switches from 100% static Astro to **hybrid SSR via the `@astrojs/cloudflare` adapter** — just the `/share/[token]` route is server-rendered on the Cloudflare Worker; every other page (home, privacy, terms, support) keeps `prerender = true` and stays statically built. **All Supabase access stays server-side in the Worker** — the browser never imports `@supabase/supabase-js`, never sees the anon key, never makes a call to `*.supabase.co`. The Worker reads `shared_prayer_links` via the anon key (the migration-026 RLS policy `"Shared links: anyone read alive"` gates anon SELECT on alive rows) and, for voice shares, calls the new public `share-audio-url` edge function to mint a 5-minute signed URL. The fully-rendered HTML (with the signed audio URL embedded) is sent to the browser. AASA + assetlinks files ship as static `public/.well-known/*` assets.
 
-**Tech stack:** Astro 6.3 · TailwindCSS v4 · TypeScript · `@astrojs/cloudflare` adapter · `@supabase/supabase-js` (browser-bundle-safe) · Cloudflare Workers (Static Assets + the new Worker entry for SSR) · Vitest for unit tests on the resolver helper.
+**Defence layers (no user login required):**
+1. Supabase credentials in Worker secrets only — no `PUBLIC_*` env vars, no client-side Supabase SDK in the bundle.
+2. Token-format validation at the Worker boundary: must match `[A-Za-z0-9]{10}` (the base62 length-10 mint format). Cheap defence against bulk-scan probes with malformed input.
+3. Cloudflare rate limiting on `/share/*` at 60 requests/min/IP via a Workers rate-limit binding.
+4. `noindex, nofollow` meta + a robots.txt rule so search engines don't archive share pages.
+5. The opaque-404 contract from Plan A is preserved end-to-end (missing / expired / retracted / wrong-kind all resolve to the same dead-state page; the Worker never discloses which).
+
+**Tech stack:** Astro 6.3 · TailwindCSS v4 · TypeScript · `@astrojs/cloudflare` adapter · `@supabase/supabase-js` (server-side only, in the Worker — not in the browser bundle) · Cloudflare Workers (Static Assets + the SSR Worker entry + a rate-limit binding) · Vitest for unit tests on the resolver helper.
 
 **Source spec:** [`shared-prayer-receive.md`](https://github.com/side8/union-notes/blob/main/content/product/shared-prayer-receive.md) in `union-notes`. Plan A (backend) at [union-supabase PR #47](https://github.com/side8/union-supabase/pull/47) (merged). Plan B (app) at [union-app PR #147](https://github.com/side8/union-app/pull/147) (merged). Migration 028 (`journal_from_labels`) at [union-supabase PR #48](https://github.com/side8/union-supabase/pull/48) (merged).
 
 ---
 
-## Three decisions made in this plan (flag if any are wrong)
+## Decisions made in this plan
 
-1. **Web "Save to Union" CTA deferred.** The spec describes two CTAs on the public page — *"Save to Union"* (which requires web-side Supabase auth) and *"Get Union"* (App Store / Play Store). Plan C ships **only "Get Union"**. Web auth on a currently-100%-static marketing site is a major surface-area expansion (login UI, session cookies, the inline-auth-then-return-to-save flow); deferring it lets Plan C ship the rest of the spec's web surface without that complexity. Recipients who install Union and tap the link again get the full save flow via the universal link delivered in Plan B.
+1. **The public web page never asks for login.** Per PO direction (overriding spec line 89 which said *"Save to Union — if not signed in, auth flow inline (magic link or social)…"*): login only happens IF the recipient installs the app. The web page is read-only for the prayer content. A **single "Save to Union" CTA** opens `union://share/<token>` — if Union is installed, the universal link routes into the app and Plan B's flow takes over; if not, a small hint tells the recipient to install Union and tap the link again. *The spec should be updated to match — flag a small `union-notes` PR after Plan C merges.*
 
-   *Implication:* the public page is read-only for the prayer content. No journal entry gets created from the web. The "Save to Union" CTA in the spec becomes a follow-up — call it Plan E or fold into a later web-auth pass.
+2. **All Supabase access stays server-side in the Worker.** The browser never imports `@supabase/supabase-js`, never sees the anon key. The page is fully SSR'd; the rendered HTML (including the signed audio URL for voice shares) goes to the browser, which then only fetches the audio bytes from Supabase Storage via the embedded signed URL. No `PUBLIC_*` env vars; Worker secrets only. Layers of defence detailed in the **Architecture** section above.
 
-2. **Voice playback on web requires a public audio endpoint.** Spec §6: *"Audio uses a signed URL that only the share page can resolve."* Plan A's `redeem-share-link` mints signed URLs but requires auth (and creates a journal entry). Plan C adds a small precursor edge function `share-audio-url` on `union-supabase` with `verify_jwt = false` — anon callers pass the token, the function verifies the link is alive and the kind is `composed_voice`, then returns a 5-minute signed URL. Modelled on the existing public `bible` and `daily-verse` functions.
+3. **Voice playback on web requires a public audio endpoint.** Spec §6: *"Audio uses a signed URL that only the share page can resolve."* Plan A's `redeem-share-link` mints signed URLs but requires auth (and creates a journal entry). Plan C adds a small precursor edge function `share-audio-url` on `union-supabase` with `verify_jwt = false` — callers pass the token, the function verifies the link is alive and the kind is `composed_voice`, then returns a 5-minute signed URL. The Worker is the only caller (calls it server-side during SSR), but the function is `verify_jwt = false` because no caller-side JWT exists. Modelled on the existing public `bible` and `daily-verse` functions.
 
-3. **Hybrid SSR via the `@astrojs/cloudflare` adapter.** Today union-webapp is 100% static. Adding the adapter lets the `/share/[token]` page be server-rendered on the Cloudflare Worker (good for rich-preview metadata + reverent first paint without a loading spinner) while everything else stays static-prerendered. The wrangler.jsonc comment anticipates this: *"If we ever need server-side handling... add a `main` entry pointing at a Worker script."*
+4. **Hybrid SSR via the `@astrojs/cloudflare` adapter.** Today union-webapp is 100% static. Adding the adapter lets the `/share/[token]` page be server-rendered on the Cloudflare Worker (good for rich-preview metadata + reverent first paint without a loading spinner) while everything else stays static-prerendered. The wrangler.jsonc comment anticipates this: *"If we ever need server-side handling... add a `main` entry pointing at a Worker script."*
 
-> If decision 1 is wrong (and you want Save-to-Union shipped on web in this batch), Plan C grows by ~6 tasks (Supabase auth init, sign-in UI, post-auth resume-state, redeem call from the browser, the test surface). Worth confirming before execution.
+> If decision 3 is wrong, the alternative is *"voice shares only play in the app"* — the web page would show a *"Install Union to play this voice prayer"* card instead of a playback control. Smaller scope, but breaks the spec's "audio plays on the web" promise.
 
-> If decision 2 is wrong, the only alternative is *"voice shares only play in the app"* — the web page would show a *"Install Union to play this voice prayer"* card instead of a playback control. Smaller scope, but breaks the spec's "audio plays on the web" promise.
-
-> If decision 3 is wrong, the alternative is *"keep the site fully static; render `/share/[token]` as a thin HTML shell that fetches the prayer client-side."* That works but loses rich-preview metadata for WhatsApp/iMessage link unfurling (the page meta is identical for every token) and shows a loading state on first paint. The reverent tone of Union argues against the loading state.
+> If decision 4 is wrong, the alternative is *"keep the site fully static; render `/share/[token]` as a thin HTML shell that fetches the prayer client-side."* That works but loses rich-preview metadata for WhatsApp/iMessage link unfurling AND would push Supabase access into the browser bundle — exactly the thing decision 2 is preventing. Decision 4 is load-bearing on decision 2.
 
 ---
 
@@ -44,27 +49,28 @@ This plan creates / modifies the following files.
 | `../union-supabase/supabase/functions/share-audio-url/service.ts` | `fetchAliveLink` + `signAudioUrl` factories. |
 | `../union-supabase/supabase/functions/tests/share-audio-url-orchestrator-test.ts` | Unit tests for the orchestrator. |
 | `src/pages/share/[token].astro` | SSR share-page route. |
-| `src/lib/supabase.ts` | Browser-safe supabase client + env-var loader (small wrapper). |
-| `src/lib/share-link.ts` | `resolveShareLink(token)` server-side helper; returns the shape the page renders. |
-| `src/lib/share-link.test.ts` | Vitest tests for the resolver. |
+| `src/lib/supabase.ts` | **Server-only** Supabase anon client. Reads from `import.meta.env.SUPABASE_*` (no PUBLIC_ prefix — Astro keeps these out of the client bundle). |
+| `src/lib/share-link.ts` | `resolveShareLink(token)` server-side helper; returns the shape the page renders. Validates token format before any Supabase call. |
+| `src/lib/share-link.test.ts` | Vitest tests for the resolver (token validation, dead states, per-kind alive paths). |
 | `src/components/SharePagePrayer.astro` | Renders the prayer body + From line for text shares. |
 | `src/components/SharePageVoice.astro` | Renders the audio playback control for voice shares. |
 | `src/components/SharePageDead.astro` | Dead-state copy: *"This prayer link is no longer active."* |
-| `src/components/InstallCTAs.astro` | App Store / Play Store / *Why Union* card. |
-| `src/components/ShareMeta.astro` | Open Graph + Twitter Card meta tags slot, parameterised. |
+| `src/components/SaveInUnionCTA.astro` | Single "Save to Union" CTA + App Store / Play Store install links. No web auth. |
+| `src/components/ShareMeta.astro` | Open Graph + Twitter Card meta tags slot, parameterised. `noindex, nofollow` for share pages. |
 | `public/.well-known/apple-app-site-association` | iOS universal-link verification. |
 | `public/.well-known/assetlinks.json` | Android App Links verification. |
+| `public/robots.txt` | Disallow `/share/` from search crawlers (belt-and-braces; tokens are unguessable). |
 
 **Modified files**
 
 | Path | Change |
 |---|---|
 | `package.json` | Add `@astrojs/cloudflare`, `@supabase/supabase-js`, `vitest`, `@vitest/coverage-v8`. New `test` and `typecheck` scripts. |
-| `astro.config.mjs` | `import cloudflare from '@astrojs/cloudflare'` + `output: 'hybrid'` + `adapter: cloudflare()`. |
-| `src/layouts/Layout.astro` | Accept an optional `<slot name="head" />` so the share page can inject OG meta. |
-| `wrangler.jsonc` | Reference the adapter's `_worker.js` output (the adapter writes it on build). Add a comment explaining the static + worker hybrid. |
+| `astro.config.mjs` | `import cloudflare from '@astrojs/cloudflare'` + `output: 'static'` (Astro 6 default; the share page opts out per-route) + `adapter: cloudflare()`. |
+| `src/layouts/Layout.astro` | Accept an optional `<slot name="head" />` so the share page can inject OG meta and `noindex` per-page. |
+| `wrangler.jsonc` | Reference the adapter's `_worker.js` output. Add a Workers rate-limit binding for `/share/*` (60 req/min/IP). Comment explaining the static + worker hybrid. |
 | `tsconfig.json` | Confirm strict mode + add `vitest/globals` types. |
-| `.env.example` (new) | `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY` (the prefix Astro uses for client-side vars). |
+| `.env.example` (new) | `SUPABASE_URL`, `SUPABASE_ANON_KEY` — **no `PUBLIC_` prefix**, so Astro keeps these server-side only. |
 
 ---
 
@@ -470,11 +476,15 @@ The adapter writes a Worker entry to `./dist/_worker.js/index.js`. Replace conte
 - [ ] **Step 5: Create `.env.example`**
 
 ```
-# Public Supabase env vars for the SSR share-page resolver.
-# Astro exposes any var prefixed with PUBLIC_ to both server and client.
-PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
+# Server-side-only Supabase env vars. NO PUBLIC_ prefix so Astro
+# does not expose them to the client bundle. These power the SSR
+# share-page resolver — all Supabase access happens inside the
+# Cloudflare Worker. The browser never sees these.
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=eyJxxx...
 ```
+
+For the deployed Worker, these values are set via `wrangler secret put` (or in the Cloudflare dashboard's Worker secrets). They become available to the Worker at runtime as `import.meta.env.SUPABASE_URL` etc.
 
 - [ ] **Step 6: Create `vitest.config.ts`**
 
@@ -558,18 +568,24 @@ Server-side helper that takes a token and returns a render-ready shape.
 ```typescript
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    'PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_ANON_KEY not set — copy .env.example to .env.',
-  )
-}
-
+// Server-side-only Supabase client. This module must never be
+// imported into client-bundle code (no React island, no
+// `<script>`). Astro keeps modules imported only from `.astro`
+// frontmatter on the server. The env vars deliberately drop the
+// PUBLIC_ prefix so Astro will not expose them to the client.
+//
 // Anon-only client. The share page is public; no auth, no session.
 // RLS on shared_prayer_links ("Shared links: anyone read alive")
 // limits anon to alive rows.
+const SUPABASE_URL = import.meta.env.SUPABASE_URL
+const SUPABASE_ANON_KEY = import.meta.env.SUPABASE_ANON_KEY
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'SUPABASE_URL / SUPABASE_ANON_KEY not set — copy .env.example to .env (or set Worker secrets).',
+  )
+}
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
 })
@@ -811,13 +827,15 @@ export async function resolveShareLink(token: string): Promise<ResolvedShareLink
 }
 
 async function fetchSignedAudioUrl(token: string): Promise<string | null> {
-  const url = `${import.meta.env.PUBLIC_SUPABASE_URL}/functions/v1/share-audio-url`
+  // Server-side-only call — Worker calls the public edge function
+  // during SSR. No PUBLIC_ env vars.
+  const url = `${import.meta.env.SUPABASE_URL}/functions/v1/share-audio-url`
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        apikey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+        apikey: import.meta.env.SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({ token }),
     })
@@ -828,7 +846,28 @@ async function fetchSignedAudioUrl(token: string): Promise<string | null> {
     return null
   }
 }
+
+// Token must match the base62 length-10 format the mint generates
+// (see union-supabase/supabase/functions/mint-share-link/token.ts).
+// Cheap defence against bulk-scan probes with malformed input —
+// rejects without ever issuing a Supabase call.
+const TOKEN_PATTERN = /^[A-Za-z0-9]{10}$/
+
+export function isValidShareToken(token: string): boolean {
+  return TOKEN_PATTERN.test(token)
+}
 ```
+
+Update `resolveShareLink` to short-circuit on invalid tokens before any Supabase call:
+
+```typescript
+export async function resolveShareLink(token: string): Promise<ResolvedShareLink> {
+  if (!isValidShareToken(token)) return { kind: 'dead' }
+  // ... rest as before
+}
+```
+
+The test file should add a case asserting `resolveShareLink('not-a-real-token')` returns `{ kind: 'dead' }` and does NOT call `supabase.from`.
 
 - [ ] **Step 5: Run the test to confirm it passes**
 
@@ -882,7 +921,7 @@ import Footer from '../../components/Footer.astro'
 import SharePagePrayer from '../../components/SharePagePrayer.astro'
 import SharePageVoice from '../../components/SharePageVoice.astro'
 import SharePageDead from '../../components/SharePageDead.astro'
-import InstallCTAs from '../../components/InstallCTAs.astro'
+import SaveInUnionCTA from '../../components/SaveInUnionCTA.astro'
 import ShareMeta from '../../components/ShareMeta.astro'
 import { resolveShareLink } from '../../lib/share-link'
 
@@ -926,7 +965,7 @@ const pageDescription =
       />
     )}
 
-    <InstallCTAs />
+    {resolved.kind === 'alive' && <SaveInUnionCTA />}
   </main>
 
   <Footer />
@@ -1210,46 +1249,53 @@ Soft 'no longer active' surface. Same copy regardless of why
 
 ---
 
-## Task 8: InstallCTAs component
+## Task 8: SaveInUnionCTA component
 
-App Store / Play Store cards. No "Save to Union" (deferred per decision 1).
+Single "Save to Union" affordance. Per decision 1, the page never asks for login — the only path to save a prayer is in the app. The CTA explains that and points the user to install if they haven't already.
 
 **Files:**
-- Create: `src/components/InstallCTAs.astro`
+- Create: `src/components/SaveInUnionCTA.astro`
 
 - [ ] **Step 1: Create the component**
 
 ```astro
 ---
-// Install CTAs shown on every share page. Per Plan C decision 1,
-// the "Save to Union" web-auth flow is deferred — this page is
-// read-only for the prayer content. Users install Union and then
-// tap the link again; the universal link delivered in Plan B then
-// handles save in the native app.
+// Save-to-Union CTA shown on every alive share page. Per Plan C
+// decision 1, the public page never asks for login — saving
+// happens IN the app, after install. This block frames the install
+// step as "Save to Union" so the user understands what they get.
+//
+// If Union is installed and AASA-verified, the universal-link tap
+// from the original messaging app would already have opened the
+// app and skipped this page entirely. By the time the user sees
+// this CTA, they're on web without the app installed (or AASA
+// hasn't verified yet) — so the actionable next step is install.
 ---
 
-<section class="ctas">
-  <h2>Save this to your journal in Union</h2>
-  <p class="hint">Install Union, then tap the link again on the same device.</p>
-  <div class="cards">
-    <a class="cta" href="https://apps.apple.com/app/id-PLACEHOLDER">
-      <span class="cta-label">Download on the</span>
-      <span class="cta-store">App Store</span>
+<section class="cta-card">
+  <h2>Save this in Union</h2>
+  <p class="hint">
+    Install Union and tap the link again — your saved prayer lands in your journal alongside the rest.
+  </p>
+  <div class="store-links">
+    <a class="store" href="https://apps.apple.com/app/id-PLACEHOLDER">
+      <span class="store-label">Download on the</span>
+      <span class="store-name">App Store</span>
     </a>
-    <a class="cta" href="https://play.google.com/store/apps/details?id=app.unionwith">
-      <span class="cta-label">Get it on</span>
-      <span class="cta-store">Google Play</span>
+    <a class="store" href="https://play.google.com/store/apps/details?id=app.unionwith">
+      <span class="store-label">Get it on</span>
+      <span class="store-name">Google Play</span>
     </a>
   </div>
 </section>
 
 <style>
-  .ctas {
+  .cta-card {
     border-top: 1px solid var(--rule);
     padding-top: 48px;
     margin-top: 48px;
   }
-  .ctas h2 {
+  .cta-card h2 {
     font-family: var(--display-font);
     font-size: 24px;
     line-height: 1.2;
@@ -1260,12 +1306,12 @@ App Store / Play Store cards. No "Save to Union" (deferred per decision 1).
     color: var(--ink-soft);
     margin: 0 0 24px 0;
   }
-  .cards {
+  .store-links {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
   }
-  .cta {
+  .store {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -1276,12 +1322,12 @@ App Store / Play Store cards. No "Save to Union" (deferred per decision 1).
     text-decoration: none;
     font-family: var(--ui-font);
   }
-  .cta-label {
+  .store-label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .cta-store {
+  .store-name {
     font-size: 18px;
     font-weight: 600;
   }
@@ -1293,12 +1339,13 @@ App Store / Play Store cards. No "Save to Union" (deferred per decision 1).
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/components/InstallCTAs.astro
-git commit -m "feat(web): InstallCTAs component
+git add src/components/SaveInUnionCTA.astro
+git commit -m "feat(web): SaveInUnionCTA component
 
-App Store + Play Store cards. iOS app ID is a placeholder pending
-App Store submission; Android URL is the correct app.unionwith
-package."
+Single 'Save to Union' affordance — explains the install-then-tap-
+again flow + App Store + Play Store links. No web auth (per Plan C
+decision 1). iOS app ID placeholder pending App Store submission;
+Android package matches union-app/app.json."
 ```
 
 ---
@@ -1356,7 +1403,130 @@ the closing </head>."
 
 ---
 
-## Task 10: AASA file (iOS universal-link verification)
+## Task 10: Defence layers — rate limit, robots.txt, noindex meta
+
+Three small additions that together protect the public surface without asking users to log in.
+
+**Files:**
+- Modify: `wrangler.jsonc` — add a Workers rate-limit binding for `/share/*`.
+- Modify: `src/pages/share/[token].astro` — set response headers so the share page is not indexed.
+- Modify: `src/components/ShareMeta.astro` — add a `<meta name="robots" content="noindex,nofollow">` line.
+- Create: `public/robots.txt` — `Disallow: /share/` for any compliant crawler.
+
+- [ ] **Step 1: Add the rate-limit binding to `wrangler.jsonc`**
+
+Append to the existing config:
+
+```jsonc
+{
+  // ... existing fields ...
+  "unsafe": {
+    "bindings": [
+      {
+        "name": "SHARE_RATE_LIMIT",
+        "type": "ratelimit",
+        "namespace_id": "PLACEHOLDER-CHANGEME-FROM-DASHBOARD",
+        "simple": { "limit": 60, "period": 60 }
+      }
+    ]
+  }
+}
+```
+
+**Note:** Cloudflare Workers rate-limit bindings need a `namespace_id` generated in the Cloudflare dashboard (Workers → Rate Limiting → Create). The placeholder string must be replaced before merge — flag as a real-credential blocker like AASA / assetlinks.
+
+- [ ] **Step 2: Use the binding in the share route**
+
+In `src/pages/share/[token].astro`, before calling `resolveShareLink`, add the rate-limit check. The Worker exposes the binding via `Astro.locals.runtime.env` (the `@astrojs/cloudflare` adapter provides this shape):
+
+```typescript
+---
+// ... existing imports ...
+
+export const prerender = false
+
+const { token } = Astro.params
+
+// Rate limit per IP. Cloudflare's rate-limit binding takes a key
+// string; we use the client IP from CF-Connecting-IP. If limited,
+// the response is 429 — but we still render the dead state body so
+// the page is visually consistent.
+const env = (Astro.locals as { runtime?: { env?: { SHARE_RATE_LIMIT?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> } } } })
+  .runtime?.env
+const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown'
+let rateLimited = false
+if (env?.SHARE_RATE_LIMIT) {
+  const { success } = await env.SHARE_RATE_LIMIT.limit({ key: `share:${ip}` })
+  if (!success) rateLimited = true
+}
+
+const resolved = rateLimited || !token
+  ? { kind: 'dead' as const }
+  : await resolveShareLink(token)
+
+// ... rest as before ...
+```
+
+(Treating rate-limited as dead — the page still renders, no error stack, no leak.)
+
+Also set the response-level noindex header. Place near the top of the frontmatter:
+
+```typescript
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+```
+
+- [ ] **Step 3: Add `<meta name="robots" content="noindex,nofollow">` to `ShareMeta.astro`**
+
+In addition to the OG / Twitter tags it already carries:
+
+```astro
+<meta name="robots" content="noindex,nofollow" />
+```
+
+- [ ] **Step 4: Create `public/robots.txt`**
+
+```
+User-agent: *
+Disallow: /share/
+```
+
+This is belt-and-braces — the unguessable token already makes share URLs de facto private, and the noindex meta + X-Robots-Tag header are the primary controls. The robots.txt is the cheapest possible additional layer.
+
+- [ ] **Step 5: Verify locally**
+
+```bash
+npm run dev
+# In another terminal:
+curl -I http://localhost:4321/share/aaaaaaaaaa | grep -i x-robots-tag
+curl http://localhost:4321/robots.txt
+```
+
+Expect: `X-Robots-Tag: noindex, nofollow` on the share route; `Disallow: /share/` in `robots.txt`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add wrangler.jsonc src/pages/share/\[token\].astro src/components/ShareMeta.astro public/robots.txt
+git commit -m "feat(web): rate limit + noindex + robots for /share/*
+
+Three defence layers on the public share surface — none require
+user login:
+- Cloudflare Workers rate-limit binding (60 req/min/IP) on the
+  share route. Rate-limited responses render the dead state body
+  to avoid leaking the limit signal.
+- X-Robots-Tag: noindex, nofollow response header + the same
+  via <meta robots> in ShareMeta for crawlers that prefer the
+  HTML control.
+- robots.txt Disallow: /share/ for compliant crawlers.
+
+Plus a 'unsafe.bindings' entry in wrangler.jsonc for the
+namespace_id (placeholder — must be replaced from the Cloudflare
+dashboard before merge)."
+```
+
+---
+
+## Task 11: AASA file (iOS universal-link verification)
 
 iOS fetches this at app install time AND at first universal-link tap. Without it, taps on `https://unionwith.app/share/<token>` open Safari instead of the app.
 
@@ -1403,7 +1573,7 @@ iOS to verify the universal link and route taps into the app."
 
 ---
 
-## Task 11: Android assetlinks.json
+## Task 12: Android assetlinks.json
 
 Android verifies the App Links claim against this file at install time.
 
@@ -1443,7 +1613,7 @@ Android to auto-verify the App Link and route taps into the app."
 
 ---
 
-## Task 12: PR + Cloudflare preview verification
+## Task 13: PR + Cloudflare preview verification
 
 Open the PR, watch CI, deploy a preview, manually verify the share/dead/voice paths end-to-end.
 
@@ -1501,22 +1671,22 @@ The Cloudflare deploy promotes automatically on merge to main.
 | §3 Voice prayer audio playback control | SharePageVoice component | Task 6 |
 | §3 "Expires in N days" | Both Prayer + Voice components show it | Tasks 5, 6 |
 | §3 "From: Sarah" line | Both components render `fromLabel` | Tasks 5, 6 |
-| §3 Install CTA (App Store / Play Store / web app) | InstallCTAs component | Task 8 |
-| §3 "Save to Union" CTA | **Deferred — see decision 1** | — |
+| §3 Save / install CTA | SaveInUnionCTA component (single CTA; install paths to App Store / Play Store) | Task 8 |
+| §3 "Save to Union" inline-auth on web | **Not built — see decision 1; spec line 89 to be updated** | — |
 | §3 Dead state | SharePageDead component | Task 7 |
 | §6 Audio served via short-TTL signed URL | share-audio-url edge function (5 min TTL) | Task 1 |
-| §6 Public page is uninstrumented | No analytics, no IP logging | (implicit — no code added for it) |
+| §6 Public page is uninstrumented | No analytics, no IP logging beyond rate-limit binding (IP not persisted past Cloudflare's rate-limit window) | Task 10 |
 | §9 Dead-state copy identical for expired / retracted / never-existed | SharePageDead renders the same for all three; resolveShareLink returns `{ kind: 'dead' }` for all three | Tasks 3, 7 |
 | App.json `applinks:unionwith.app` (Plan B) needs AASA | `public/.well-known/apple-app-site-association` | Task 10 |
 | App.json Android intentFilters (Plan B) needs assetlinks | `public/.well-known/assetlinks.json` | Task 11 |
 
 **Gaps surfaced by self-review:**
 
-- **"Save to Union" web auth** is deferred (decision 1). The spec calls for it; Plan C ships without. Flag for follow-up.
+- **"Save to Union" inline-auth on web is not built** per decision 1 (PO direction overrides spec line 89). A separate small `union-notes` PR after Plan C merges should update the spec text to match.
 - **AASA + assetlinks placeholders** need real Apple Team ID and Android signing fingerprint before merge.
-- **App Store URL** placeholder in InstallCTAs needs the real App Store ID once the iOS app is approved.
+- **App Store URL placeholder** in SaveInUnionCTA needs the real App Store ID once the iOS app is approved.
+- **Rate-limit namespace_id placeholder** in `wrangler.jsonc` needs the real Cloudflare namespace_id from the dashboard before merge.
 - **Rich-preview OG image** — none provided. The text-only OG meta will still unfurl, but adding an `<og:image>` would be polished follow-up.
-- **Analytics on public page** — Task description says "no IP logging" but doesn't add any code. Should we add a robots `noindex` header for the share pages so they don't end up in search results? Worth a follow-up; the unguessable token URLs are de facto private but a meta robots tag would be belt-and-braces.
 
 ---
 
