@@ -1,0 +1,40 @@
+---
+// Soft dead-state for any share link that's expired, retracted, or
+// never existed. Same wording for all three per spec §3 so the
+// sender can't infer redemption / probers can't enumerate.
+//
+// Spec §3 explicit: "No prayer body, no audio, no install CTA —
+// quiet, unobtrusive." The share-page route must NOT render the
+// SaveInUnionCTA on this state.
+---
+
+<article class="dead-card">
+  <h1>This prayer link is no longer active</h1>
+  <p>
+    The sender may have shared a new link, or the time on this one has run out.
+    There's no action to take here — but Union has many prayers ready when you
+    need them.
+  </p>
+</article>
+
+<style>
+  .dead-card {
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 48px 40px;
+    margin-bottom: 48px;
+  }
+  .dead-card h1 {
+    font-family: var(--display-font);
+    font-size: 28px;
+    line-height: 1.15;
+    margin: 0 0 16px 0;
+    color: var(--ink);
+  }
+  .dead-card p {
+    color: var(--ink-soft);
+    font-size: 17px;
+    line-height: 1.55;
+  }
+</style>

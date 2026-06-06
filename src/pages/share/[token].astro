@@ -1,0 +1,92 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import SharePagePrayer from '../../components/SharePagePrayer.astro'
+import SharePageVoice from '../../components/SharePageVoice.astro'
+import SharePageDead from '../../components/SharePageDead.astro'
+import SaveInUnionCTA from '../../components/SaveInUnionCTA.astro'
+import ShareMeta from '../../components/ShareMeta.astro'
+import { resolveShareLink } from '../../lib/share-link'
+import {
+  buildSharePageView,
+  resolveSupabaseCreds,
+  shouldRateLimit,
+  type ShareRouteEnv,
+} from '../../lib/share-page'
+
+// SSR-only — this route resolves a per-recipient token at request
+// time in the Cloudflare Worker. Marketing pages stay static; this
+// one opts out via prerender = false.
+export const prerender = false
+
+// The @astrojs/cloudflare adapter exposes Cloudflare bindings via
+// Astro.locals.runtime.env. In `npm run dev` (no Cloudflare runtime)
+// `runtime` is undefined — the helper short-circuits in that case so
+// dev works without Wrangler.
+type Locals = { runtime?: { env?: ShareRouteEnv } }
+const env = (Astro.locals as Locals).runtime?.env
+
+const token = Astro.params.token ?? ''
+const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown'
+
+// Rate-limit BEFORE hitting Supabase so probers can't use this route
+// to bulk-scan tokens. Rate-limited requests render the dead-state
+// body (NOT a 429) — returning 429 would leak the limit signal and
+// tell probers when they've crossed the threshold. Spec §3
+// opaque-dead contract: probers must not be able to distinguish.
+const rateLimited = await shouldRateLimit(env, ip)
+// Resolve Supabase creds from the runtime Secrets Store bindings
+// (with a local-dev fallback to import.meta.env). If creds can't be
+// resolved we render the opaque dead state rather than throwing a
+// stack to the user — same contract as a rate-limited request.
+const creds = rateLimited ? null : await resolveSupabaseCreds(env)
+const resolved =
+  rateLimited || !creds
+    ? ({ kind: 'dead' } as const)
+    : await resolveShareLink(token, creds)
+const view = buildSharePageView(resolved)
+
+// noindex header (belt-and-braces with the <meta> tag in ShareMeta).
+// Spec §4: share URLs must never appear in search results.
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+// Per-recipient content — caches must never reuse one user's share
+// page for another. private,no-store covers shared and browser
+// caches alike.
+Astro.response.headers.set('Cache-Control', 'private, no-store')
+---
+
+<Layout title={view.title} description={view.description}>
+  <Fragment slot="head">
+    <ShareMeta title={view.title} description={view.description} />
+  </Fragment>
+
+  <main class="share-shell">
+    {view.component === 'voice' && resolved.kind === 'alive' && (
+      <SharePageVoice
+        audioUrl={resolved.audio_url}
+        fromLabel={resolved.from_label}
+        expiresAt={resolved.expires_at}
+      />
+    )}
+
+    {view.component === 'prayer' && resolved.kind === 'alive' && (
+      <SharePagePrayer
+        title={resolved.title}
+        body={resolved.body}
+        fromLabel={resolved.from_label}
+        expiresAt={resolved.expires_at}
+      />
+    )}
+
+    {view.component === 'dead' && <SharePageDead />}
+
+    {view.showCTA && <SaveInUnionCTA />}
+  </main>
+</Layout>
+
+<style>
+  .share-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+  }
+</style>
