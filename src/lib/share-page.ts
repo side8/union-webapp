@@ -81,17 +81,28 @@ export interface SharePageView {
 
 export function buildSharePageView(resolved: ResolvedShareLink): SharePageView {
   if (resolved.kind === 'alive' && resolved.prayer_kind === 'composed_voice') {
+    // with_me reframes the one-way "shared … with you" wording as an
+    // invitation to pray together (migration 029). for_others keeps
+    // today's framing.
+    const description =
+      resolved.intent === 'with_me'
+        ? 'Someone invites you to pray this voice prayer with them on Union.'
+        : 'Someone shared a voice prayer with you on Union.'
     return {
       title: 'A voice prayer',
-      description: 'Someone shared a voice prayer with you on Union.',
+      description,
       component: 'voice',
       showCTA: true,
     }
   }
   if (resolved.kind === 'alive') {
+    const description =
+      resolved.intent === 'with_me'
+        ? 'Someone invites you to pray this with them on Union.'
+        : 'Someone shared a prayer with you on Union.'
     return {
       title: resolved.title,
-      description: 'Someone shared a prayer with you on Union.',
+      description,
       component: 'prayer',
       showCTA: true,
     }

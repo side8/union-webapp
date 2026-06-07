@@ -15,6 +15,11 @@ export type ResolvedShareLink =
       body: string
       from_label: string | null
       audio_url: string | null
+      // How the sender framed the share (shared_prayer_links.intent,
+      // migration 029): 'for_others' is a one-way share, 'with_me' is
+      // an invitation to pray together. Drives the receive-page copy.
+      // Null/missing rows (pre-029) coerce to 'for_others'.
+      intent: 'for_others' | 'with_me'
       expires_at: string
     }
   | { kind: 'dead' }
@@ -48,7 +53,7 @@ export async function resolveShareLink(
     .from('shared_prayer_links')
     .select(`
       id, prayer_kind, sender_name_snapshot,
-      payload_text, payload_audio_path,
+      payload_text, payload_audio_path, intent,
       expires_at, retracted_at,
       prayer:prayers ( title, text )
     `)
@@ -86,6 +91,11 @@ export async function resolveShareLink(
     audio_url = await fetchSignedAudioUrl(token, creds)
   }
 
+  // Coerce a null/missing intent (pre-029 rows / safety) to the
+  // one-way 'for_others' framing.
+  const intent: 'for_others' | 'with_me' =
+    data.intent === 'with_me' ? 'with_me' : 'for_others'
+
   return {
     kind: 'alive',
     prayer_kind,
@@ -93,6 +103,7 @@ export async function resolveShareLink(
     body,
     from_label: data.sender_name_snapshot,
     audio_url,
+    intent,
     expires_at: data.expires_at,
   }
 }

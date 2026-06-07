@@ -109,7 +109,7 @@ describe('resolveShareLink', () => {
     expect(out).toEqual({ kind: 'dead' })
   })
 
-  test('corpus alive: joins prayers and returns title + body + from + expires', async () => {
+  test('corpus alive: joins prayers and returns title + body + from + expires + intent', async () => {
     maybeSingle.mockResolvedValue({
       data: {
         id: validToken,
@@ -117,6 +117,7 @@ describe('resolveShareLink', () => {
         sender_name_snapshot: 'Sarah',
         payload_text: null,
         payload_audio_path: null,
+        intent: 'for_others',
         expires_at: '2099-01-01T00:00:00Z',
         retracted_at: null,
         prayer: { title: 'A Collect for Aid', text: 'Lighten our darkness…' },
@@ -129,6 +130,8 @@ describe('resolveShareLink', () => {
       'https://x.supabase.co',
       'anon',
     )
+    // The resolver pulls `intent` in its column list.
+    expect(select).toHaveBeenCalledWith(expect.stringContaining('intent'))
     expect(out).toEqual({
       kind: 'alive',
       prayer_kind: 'corpus',
@@ -136,8 +139,49 @@ describe('resolveShareLink', () => {
       body: 'Lighten our darkness…',
       from_label: 'Sarah',
       audio_url: null,
+      intent: 'for_others',
       expires_at: '2099-01-01T00:00:00Z',
     })
+  })
+
+  test('alive with intent=with_me → resolved intent=with_me', async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: validToken,
+        prayer_kind: 'corpus',
+        sender_name_snapshot: 'Sarah',
+        payload_text: null,
+        payload_audio_path: null,
+        intent: 'with_me',
+        expires_at: '2099-01-01T00:00:00Z',
+        retracted_at: null,
+        prayer: { title: 'A Collect for Aid', text: 'Lighten our darkness…' },
+      },
+      error: null,
+    })
+    const out = await resolveShareLink(validToken, creds)
+    if (out.kind !== 'alive') throw new Error('expected alive')
+    expect(out.intent).toBe('with_me')
+  })
+
+  test('alive with null/absent intent → defaults to for_others (older rows / safety)', async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: validToken,
+        prayer_kind: 'corpus',
+        sender_name_snapshot: 'Sarah',
+        payload_text: null,
+        payload_audio_path: null,
+        // intent omitted entirely (older row)
+        expires_at: '2099-01-01T00:00:00Z',
+        retracted_at: null,
+        prayer: { title: 'A Collect for Aid', text: 'Lighten our darkness…' },
+      },
+      error: null,
+    })
+    const out = await resolveShareLink(validToken, creds)
+    if (out.kind !== 'alive') throw new Error('expected alive')
+    expect(out.intent).toBe('for_others')
   })
 
   test('composed_text alive: uses payload_text as body', async () => {
