@@ -25,6 +25,7 @@ const aliveCorpus: ResolvedShareLink = {
   body: 'Lighten our darkness…',
   from_label: 'Sarah',
   audio_url: null,
+  intent: 'for_others',
   expires_at: '2099-01-01T00:00:00Z',
 }
 
@@ -35,6 +36,7 @@ const aliveComposedText: ResolvedShareLink = {
   body: 'O God of peace…',
   from_label: 'Sarah',
   audio_url: null,
+  intent: 'for_others',
   expires_at: '2099-01-01T00:00:00Z',
 }
 
@@ -45,6 +47,7 @@ const aliveVoiceWithAudio: ResolvedShareLink = {
   body: '',
   from_label: null,
   audio_url: 'https://signed/x?ttl=300',
+  intent: 'for_others',
   expires_at: '2099-01-01T00:00:00Z',
 }
 
@@ -58,7 +61,20 @@ const aliveVoiceNoAudio: ResolvedShareLink = {
   // alive. The component shows a fallback; the route must not
   // demote it to dead.
   audio_url: null,
+  intent: 'for_others',
   expires_at: '2099-01-01T00:00:00Z',
+}
+
+// with_me variants — same prayers, framed as an invitation to pray
+// together rather than a one-way share.
+const aliveCorpusWithMe: ResolvedShareLink = {
+  ...aliveCorpus,
+  intent: 'with_me',
+}
+
+const aliveVoiceWithMe: ResolvedShareLink = {
+  ...aliveVoiceWithAudio,
+  intent: 'with_me',
 }
 
 const dead: ResolvedShareLink = { kind: 'dead' }
@@ -85,6 +101,46 @@ describe('buildSharePageView', () => {
     expect(view.showCTA).toBe(true)
     expect(view.title).toBe('A voice prayer')
     expect(view.description).toContain('voice prayer')
+  })
+
+  describe('copy framed by intent', () => {
+    // for_others is the default framing — these pin today's exact
+    // wording so the with_me work cannot regress it.
+    test('for_others prayer → "shared a prayer with you" (regression pin)', () => {
+      const view = buildSharePageView(aliveCorpus)
+      expect(view.title).toBe('A Collect for Aid')
+      expect(view.description).toBe(
+        'Someone shared a prayer with you on Union.',
+      )
+    })
+
+    test('for_others voice → "shared a voice prayer with you" (regression pin)', () => {
+      const view = buildSharePageView(aliveVoiceWithAudio)
+      expect(view.title).toBe('A voice prayer')
+      expect(view.description).toBe(
+        'Someone shared a voice prayer with you on Union.',
+      )
+    })
+
+    test('with_me prayer → invitation to pray together; title stays the prayer title', () => {
+      const view = buildSharePageView(aliveCorpusWithMe)
+      expect(view.component).toBe('prayer')
+      expect(view.showCTA).toBe(true)
+      expect(view.title).toBe('A Collect for Aid')
+      expect(view.description).toBe(
+        'Someone invites you to pray this with them on Union.',
+      )
+    })
+
+    test('with_me voice → invitation to pray this voice prayer together', () => {
+      const view = buildSharePageView(aliveVoiceWithMe)
+      expect(view.component).toBe('voice')
+      expect(view.showCTA).toBe(true)
+      expect(view.title).toBe('A voice prayer')
+      expect(view.description).toBe(
+        'Someone invites you to pray this voice prayer with them on Union.',
+      )
+    })
   })
 
   test('alive composed_voice (audio_url null) → voice component, CTA shown (still alive, just degraded)', () => {
@@ -242,6 +298,7 @@ describe('resolveShareView', () => {
       body: 'Lighten our darkness…',
       from_label: 'Sarah',
       audio_url: null,
+      intent: 'for_others',
       expires_at: '2099-01-01T00:00:00Z',
     })
     const view = await resolveShareView(fullEnv(), 'aaaaaaaaaa', '1.2.3.4')
