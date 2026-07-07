@@ -53,7 +53,7 @@ export async function resolveShareLink(
     .from('shared_prayer_links')
     .select(`
       id, prayer_kind, sender_name_snapshot,
-      payload_text, payload_audio_path, intent,
+      payload_text, intent,
       expires_at, retracted_at,
       prayer:prayers ( title, text )
     `)
@@ -86,8 +86,13 @@ export async function resolveShareLink(
     body = ''
   }
 
+  // A composed_voice link always has audio by construction (mint requires it),
+  // so gate on the kind rather than reading payload_audio_path — that column is
+  // no longer granted to anon (migration 038: its first path segment is the
+  // sender's user id). The signed URL is minted by the share-audio-url edge
+  // function from the token alone.
   let audio_url: string | null = null
-  if (prayer_kind === 'composed_voice' && data.payload_audio_path) {
+  if (prayer_kind === 'composed_voice') {
     audio_url = await fetchSignedAudioUrl(token, creds)
   }
 
