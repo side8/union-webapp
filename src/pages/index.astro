@@ -44,12 +44,24 @@ const sources = [
         nothing generated.
       </p>
       <div class="cta-row">
-        <a
-          class="btn"
-          href="mailto:hello@unionwith.app?subject=Union%20beta%20access"
-          >Request beta access <span class="arr">→</span></a
-        >
-        <span class="availability">Private beta · iOS</span>
+        <div class="store-links">
+          <a
+            class="store-badge"
+            href="https://apps.apple.com/app/id6770460200"
+          >
+            <img
+              src="/badges/app-store-badge.svg"
+              alt="Download on the App Store"
+            />
+          </a>
+          <a
+            class="store-badge"
+            href="https://play.google.com/store/apps/details?id=app.unionwith"
+          >
+            <img src="/badges/google-play-badge.png" alt="Get it on Google Play" />
+          </a>
+        </div>
+        <span class="availability">iOS &amp; Android</span>
       </div>
     </div>
     <PhoneMock />
@@ -67,7 +79,7 @@ const sources = [
       <p class="sh-copy">
         Union draws from a deep well — public-domain liturgies and prayers the
         church has sung, said, and prayed across centuries and continents.
-        Every prayer is attributed. Nothing is invented; nothing is generated.
+        Every prayer is attributed.
       </p>
     </div>
     <div class="sources">
@@ -124,13 +136,23 @@ const sources = [
   </section>
 
   <section class="beta">
-    <div class="eyebrow eyebrow-center">Coming soon</div>
-    <h2>In <em>private beta</em> on iOS.</h2>
+    <div class="eyebrow eyebrow-center">Available now</div>
+    <h2>Union is <em>on your phone.</em></h2>
     <p>
-      If you'd like to test Union, write us. A small group of believers is
-      shaping it right now — prayer by prayer, week by week.
+      Built slowly and deliberately — prayer by prayer. Download Union for iOS
+      or Android.
     </p>
-    <a class="email" href="mailto:hello@unionwith.app">hello@unionwith.app</a>
+    <div class="store-links store-links-center">
+      <a class="store-badge" href="https://apps.apple.com/app/id6770460200">
+        <img src="/badges/app-store-badge.svg" alt="Download on the App Store" />
+      </a>
+      <a
+        class="store-badge"
+        href="https://play.google.com/store/apps/details?id=app.unionwith"
+      >
+        <img src="/badges/google-play-badge.png" alt="Get it on Google Play" />
+      </a>
+    </div>
   </section>
 
   <Footer />
@@ -220,6 +242,26 @@ const sources = [
     border-radius: 50%;
     background: #3a8a52;
     box-shadow: 0 0 0 3px rgba(58, 138, 82, 0.15);
+  }
+  .store-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+  .store-badge {
+    display: inline-flex;
+    /* Clear space around each official badge per brand guidelines. */
+    padding: 4px;
+  }
+  .store-badge img {
+    height: 48px;
+    width: auto;
+    display: block;
+  }
+  .store-links-center {
+    justify-content: center;
+    margin-top: 40px;
   }
 
   /* ───── sections ───── */
@@ -435,21 +477,6 @@ const sources = [
     max-width: 600px;
     text-wrap: pretty;
   }
-  .beta .email {
-    display: inline-block;
-    margin-top: 40px;
-    font-family: var(--display-font);
-    font-style: italic;
-    font-size: 30px;
-    color: var(--ink);
-    border-bottom: 1px solid var(--accent);
-    padding: 2px 4px 6px;
-    transition: color 0.18s ease;
-  }
-  .beta .email:hover {
-    color: var(--accent);
-  }
-
   @media (max-width: 1000px) {
     .hero {
       grid-template-columns: 1fr;
