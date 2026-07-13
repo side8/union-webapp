@@ -64,5 +64,16 @@
       "Bash(rm -rf node_modules)",
       "Bash(claude plugin *)"
     ]
+  },
+  "extraKnownMarketplaces": {
+    "union-claude": {
+      "source": {
+        "source": "github",
+        "repo": "side8/union-claude"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "union@union-claude": true
   }
 }
