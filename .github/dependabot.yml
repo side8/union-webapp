@@ -1,0 +1,17 @@
+version: 2
+
+# Version-update PRs. Patch + minor are auto-merged once CI is green (see
+# .github/workflows/dependabot-automerge.yml + branch protection on main);
+# majors open a PR for a human to review.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
