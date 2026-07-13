@@ -10,6 +10,15 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    ignore:
+      # TypeScript 7 (the native/Go port) is a real stable release, but
+      # Astro's type-checking stack doesn't support it yet: @astrojs/check
+      # (latest) pins peer typescript "^5.0.0 || ^6.0.0", so `npm ci` fails
+      # ERESOLVE and the Workers Builds check goes red (was PR #27). Skip the
+      # major until @astrojs/check ships a TS 7-compatible peer range; patch
+      # and minor TS bumps still flow (and still auto-merge).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
