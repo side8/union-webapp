@@ -1,0 +1,33 @@
+name: Dependabot auto-merge
+
+# Auto-merges Dependabot PATCH + MINOR PRs once the required status checks
+# pass. MAJOR bumps are never auto-merged — they get a PR for a human to
+# review. Uses `pull_request_target` so the job runs in the base-repo
+# context with a write-scoped token (Dependabot's own `pull_request` token
+# is read-only and can't enable auto-merge). This job never checks out or
+# runs PR code — it only reads metadata and calls the gh API — so there is
+# no code-injection surface from the PR.
+
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # Enable GitHub's native auto-merge; it merges once the required
+      # status checks (branch protection) go green. Scoped to patch+minor.
+      - name: Enable auto-merge for patch + minor
+        if: contains(fromJSON('["version-update:semver-patch", "version-update:semver-minor"]'), steps.meta.outputs.update-type)
+        run: gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
