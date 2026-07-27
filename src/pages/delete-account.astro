@@ -11,11 +11,16 @@ import Footer from '../components/Footer.astro'
 // In-app deletion alone does not satisfy that requirement; this page is the URL
 // declared in Play Console -> Data safety.
 //
-// It documents both routes: the in-app one (immediate, self-service) and email
-// (for anyone who can't reach the app). Content is grounded in what the
-// delete-account Edge Function actually does — see union-supabase
-// supabase/functions/delete-account/{orchestrator,service}.ts. If that
-// behaviour changes, this page must change with it.
+// Content is grounded in what the delete-account Edge Function actually does
+// (union-supabase supabase/functions/delete-account/{orchestrator,service}.ts).
+// If that behaviour changes, this page must change with it.
+//
+// STRUCTURE: mirrors privacy.astro exactly — title-block, then
+// <main class="doc"> with a .toc aside and an <article class="prose">, and NO
+// scoped <style> block. Those classes live in src/styles/global.css. The first
+// version of this page invented its own layout with bare <section>/<h2> and
+// borrowed class names from support.astro, whose styles are SCOPED to that
+// component — so the page shipped unstyled. Follow the sibling pages here.
 
 const toc = [
   { id: 'in-app', label: 'Delete it yourself' },
@@ -27,7 +32,7 @@ const toc = [
 
 <Layout
   title="Delete your account"
-  description="How to delete your Union account and the data associated with it."
+  description="How to delete your Union account and the data held with it."
 >
   <Header back />
 
@@ -37,123 +42,121 @@ const toc = [
       <h1>Delete your <em>account.</em></h1>
     </div>
     <dl class="meta">
-      <dt>Email</dt>
+      <dt>Questions</dt>
       <dd><a href="mailto:privacy@unionwith.app">privacy@unionwith.app</a></dd>
       <dt>Deleted within</dt>
-      <dd>Immediately in the app; 30 days by email</dd>
+      <dd>Straight away in the app</dd>
     </dl>
   </section>
 
-  <nav class="toc" aria-label="On this page">
-    <ul>
-      {toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}
-    </ul>
-  </nav>
+  <main class="doc">
+    <aside class="toc" aria-label="Contents">
+      <div class="lbl">Contents</div>
+      <ol>
+        {toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}
+      </ol>
+    </aside>
 
-  <section id="in-app">
-    <h2>Delete it yourself, in the app</h2>
-    <p>
-      This is the quickest route, and it happens straight away — no waiting on
-      us.
-    </p>
-    <ol>
-      <li>Open Union and go to <strong>Settings</strong>.</li>
-      <li>Scroll to <strong>Delete Account</strong>.</li>
-      <li>Confirm. Your account and its data are removed immediately.</li>
-    </ol>
-    <p class="aside">
-      Deleting your account does not cancel a subscription bought through the
-      App Store or Google Play — those are managed by the store, not by us. To
-      stop future payments, cancel the subscription in your Apple or Google
-      account settings as well.
-    </p>
-  </section>
+    <article class="prose">
+      <p class="lede">
+        You can delete your Union account, and everything held with it, whenever
+        you want. There are two ways to do it: yourself in the app, or by asking
+        us.
+      </p>
 
-  <section id="by-email">
-    <h2>Ask us to delete it</h2>
-    <p>
-      If you no longer have the app installed, or you can't sign in, write to
-      <a class="inline" href="mailto:privacy@unionwith.app"
-        >privacy@unionwith.app</a
-      > from the email address you used for Union, and ask us to delete your
-      account.
-    </p>
-    <p>
-      We'll confirm the request and delete the account within <strong
-        >30 days</strong
-      >. We ask from the registered address because it's the only way we can
-      tell it's really your account — we won't delete an account on someone
-      else's word.
-    </p>
-  </section>
+      <h2 id="in-app">
+        <span class="h-num">§ 01</span>Delete it <em>yourself</em>
+      </h2>
+      <p>
+        This is the quickest route, and it happens straight away — no waiting on
+        us.
+      </p>
+      <ol>
+        <li>Open Union and go to <strong>Settings</strong>.</li>
+        <li>Scroll to <strong>Delete Account</strong>.</li>
+        <li>Confirm. Your account and its data are removed immediately.</li>
+      </ol>
+      <p>
+        One thing worth knowing: deleting your account does <strong>not</strong>
+        cancel a subscription bought through the App Store or Google Play. Those
+        are managed by the store, not by us. To stop future payments, cancel the
+        subscription in your Apple or Google account settings as well.
+      </p>
 
-  <section id="what-goes">
-    <h2>What gets deleted</h2>
-    <p>Deleting your account removes:</p>
-    <ul>
-      <li>Your account and sign-in details</li>
-      <li>Your journal entries, written and spoken</li>
-      <li>Your voice recordings, including the stored audio files</li>
-      <li>Prayers you wrote yourself</li>
-      <li>Your saved prayers and verses</li>
-      <li>Your check-ins and the prayers they suggested</li>
-      <li>Your settings, including your tradition and reminder times</li>
-      <li>Your notification tokens, so reminders stop</li>
-    </ul>
-    <p>Two things behave slightly differently, and we'd rather be plain about it:</p>
-    <ul>
-      <li>
-        <strong>Prayers you shared with someone.</strong> The links stop working
-        and are no longer connected to you or your account.
-      </li>
-      <li>
-        <strong>Records we're required to keep.</strong> Purchase and billing
-        records held by Apple, Google or our payment provider are theirs, kept
-        for tax and accounting reasons. We can delete your Union account without
-        being able to erase their records.
-      </li>
-    </ul>
-    <p class="aside">
-      Deletion is permanent. We can't recover a deleted account, and there's no
-      grace period once it's confirmed in the app — so if you only want a break,
-      signing out is the gentler option.
-    </p>
-  </section>
+      <h2 id="by-email">
+        <span class="h-num">§ 02</span>Ask us to <em>delete it</em>
+      </h2>
+      <p>
+        If you no longer have the app installed, or you can't sign in, write to
+        <a class="inline" href="mailto:privacy@unionwith.app"
+          >privacy@unionwith.app</a
+        > from the email address you used for Union, and ask us to delete your
+        account.
+      </p>
+      <p>
+        We'll confirm the request and delete the account within
+        <strong>30 days</strong>. We ask you to write from the registered address
+        because it's the only way we can tell it's really your account — we won't
+        delete an account on someone else's word.
+      </p>
 
-  <section id="partial">
-    <h2>Deleting only some things</h2>
-    <p>
-      You don't have to delete everything to delete something. Inside the app you
-      can remove a single journal entry, a prayer you wrote, a voice recording,
-      or a saved prayer or verse, and you can retract a prayer you've shared so
-      the link stops working. Your account stays as it is.
-    </p>
-    <p>
-      If you'd like a copy of your data, or want something removed that you can't
-      reach in the app, write to <a
-        class="inline"
-        href="mailto:privacy@unionwith.app">privacy@unionwith.app</a
-      >.
-    </p>
-    <p>
-      Our <a class="inline" href="/privacy">Privacy Policy</a> explains what we
-      collect and why.
-    </p>
-  </section>
+      <h2 id="what-goes">
+        <span class="h-num">§ 03</span>What gets <em>deleted</em>
+      </h2>
+      <p>Deleting your account removes:</p>
+      <ul>
+        <li>Your account and sign-in details</li>
+        <li>Your journal entries, written and spoken</li>
+        <li>Your voice recordings, including the stored audio files</li>
+        <li>Prayers you wrote yourself</li>
+        <li>Your saved prayers and verses</li>
+        <li>Your check-ins and the prayers they suggested</li>
+        <li>Your settings, including your tradition and reminder times</li>
+        <li>Your notification tokens, so reminders stop</li>
+      </ul>
+
+      <h3>Two things behave differently</h3>
+      <p>We'd rather be plain about these than leave them implied.</p>
+      <ul>
+        <li>
+          <strong>Prayers you shared with someone.</strong> The links stop
+          working and are no longer connected to you or your account.
+        </li>
+        <li>
+          <strong>Records we're required to keep.</strong> Purchase and billing
+          records held by Apple, Google or our payment provider are theirs, kept
+          for tax and accounting reasons. We can delete your Union account
+          without being able to erase their records.
+        </li>
+      </ul>
+      <p>
+        Deletion is permanent. We can't recover a deleted account, and there's no
+        grace period once it's confirmed in the app — so if you only want a
+        break, signing out is the gentler option.
+      </p>
+
+      <h2 id="partial">
+        <span class="h-num">§ 04</span>Deleting only <em>some things</em>
+      </h2>
+      <p>
+        You don't have to delete everything to delete something. Inside the app
+        you can remove a single journal entry, a prayer you wrote, a voice
+        recording, or a saved prayer or verse, and you can retract a prayer
+        you've shared so the link stops working. Your account stays as it is.
+      </p>
+      <p>
+        If you'd like a copy of your data, or want something removed that you
+        can't reach in the app, write to <a
+          class="inline"
+          href="mailto:privacy@unionwith.app">privacy@unionwith.app</a
+        >.
+      </p>
+      <p>
+        Our <a class="inline" href="/privacy">Privacy Policy</a> explains what we
+        collect and why.
+      </p>
+    </article>
+  </main>
 
   <Footer />
 </Layout>
-
-<style>
-  .aside {
-    font-size: 0.95rem;
-    opacity: 0.8;
-  }
-  ol,
-  ul {
-    margin: 0 0 1rem 1.1rem;
-  }
-  li {
-    margin-bottom: 0.4rem;
-  }
-</style>
