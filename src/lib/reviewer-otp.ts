@@ -92,6 +92,66 @@ export function secretMatches(provided: string, expected: string): boolean {
   return diff === 0
 }
 
+export interface BasicCredentials {
+  user: string
+  pass: string
+}
+
+// Parses an HTTP Basic `Authorization` header into its two halves.
+//
+// Basic auth is the right shape for this page: Play's App access form has
+// literal Username and Password fields, and a browser renders the prompt
+// natively so there is no login form to build or session to manage. Over
+// HTTPS the credentials are protected in transit.
+//
+// Returns null for anything malformed rather than throwing — a hostile or
+// broken header must produce a clean 401, not a 500.
+export function parseBasicAuth(header: string | null): BasicCredentials | null {
+  if (!header) return null
+
+  // Scheme is case-insensitive per RFC 7617, and exactly one space.
+  const match = /^Basic\s+(\S+)$/i.exec(header.trim())
+  if (!match) return null
+
+  let decoded: string
+  try {
+    decoded = atob(match[1])
+  } catch {
+    // Not valid base64.
+    return null
+  }
+
+  // Only the FIRST colon separates the two fields — a password may itself
+  // contain colons, and splitting on all of them would silently truncate it
+  // (and could let a wrong password compare equal to a shortened one).
+  const separator = decoded.indexOf(':')
+  if (separator === -1) return null
+
+  return {
+    user: decoded.slice(0, separator),
+    pass: decoded.slice(separator + 1),
+  }
+}
+
+// Whether an Authorization header satisfies the configured credentials.
+//
+// Fails CLOSED: if either expected value is unset (a half-configured
+// deploy), secretMatches rejects everything, so the page stays locked
+// rather than silently becoming open.
+export function basicAuthOk(
+  header: string | null,
+  expectedUser: string,
+  expectedPass: string,
+): boolean {
+  const provided = parseBasicAuth(header)
+  if (!provided) return false
+  // Both compares always run — no short-circuit on the username, so the
+  // response time doesn't reveal which half was wrong.
+  const userOk = secretMatches(provided.user, expectedUser)
+  const passOk = secretMatches(provided.pass, expectedPass)
+  return userOk && passOk
+}
+
 // Human-friendly age, so the reviewer can tell a fresh code from a stale
 // one at a glance rather than comparing timestamps.
 export function describeAge(receivedAt: string, now: Date = new Date()): string {

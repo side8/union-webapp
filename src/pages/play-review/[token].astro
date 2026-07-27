@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro'
 import { env } from 'cloudflare:workers'
 import {
+  basicAuthOk,
   describeAge,
   REVIEWER_OTP_KEY,
   secretMatches,
@@ -30,15 +31,36 @@ export const prerender = false
 const bindings = env as unknown as {
   REVIEWER_OTP?: KVNamespace
   REVIEWER_PAGE_TOKEN?: string
+  REVIEWER_PAGE_USER?: string
+  REVIEWER_PAGE_PASSWORD?: string
 }
 
+// Two independent gates, checked in this order on purpose.
+//
+// 1. URL token — a wrong token 404s BEFORE the password prompt, so the
+//    page's existence is never revealed to someone guessing paths.
+// 2. HTTP Basic auth — the password the reviewer is given. Basic is the
+//    right fit here: Play's App access form has literal Username and
+//    Password fields, and the browser renders the prompt natively.
+//
+// Keeping both is deliberate defence in depth: the URL is pasted into a
+// Play Console field and may be seen by more people than intended, and
+// the password still guards it if that link ever leaks.
 const provided = Astro.params.token ?? ''
-const authorised = secretMatches(provided, bindings.REVIEWER_PAGE_TOKEN ?? '')
+const tokenOk = secretMatches(provided, bindings.REVIEWER_PAGE_TOKEN ?? '')
+
+const passwordOk =
+  tokenOk &&
+  basicAuthOk(
+    Astro.request.headers.get('Authorization'),
+    bindings.REVIEWER_PAGE_USER ?? '',
+    bindings.REVIEWER_PAGE_PASSWORD ?? '',
+  )
 
 let stored: StoredOtp | null = null
 let unavailable = false
 
-if (authorised) {
+if (passwordOk) {
   try {
     stored = await bindings.REVIEWER_OTP!.get<StoredOtp>(REVIEWER_OTP_KEY, 'json')
   } catch {
@@ -48,10 +70,14 @@ if (authorised) {
   }
 }
 
-// A wrong or missing token is indistinguishable from a page that does not
-// exist, so the secret can't be probed for.
-if (!authorised) {
+if (!tokenOk) {
+  // Indistinguishable from a page that does not exist.
   Astro.response.status = 404
+} else if (!passwordOk) {
+  // Triggers the browser's native credentials prompt. The realm is
+  // deliberately bland — it should not advertise what the page holds.
+  Astro.response.status = 401
+  Astro.response.headers.set('WWW-Authenticate', 'Basic realm="Restricted"')
 }
 
 // This page renders a live sign-in factor: it must never be indexed and
@@ -69,14 +95,21 @@ Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
   </Fragment>
 
   <main class="wrap">
-    {!authorised && (
+    {!tokenOk && (
       <section>
         <h1>Not found</h1>
         <p>This page isn’t available.</p>
       </section>
     )}
 
-    {authorised && (
+    {tokenOk && !passwordOk && (
+      <section>
+        <h1>Sign in required</h1>
+        <p>Enter the username and password supplied with this link.</p>
+      </section>
+    )}
+
+    {passwordOk && (
       <section>
         <h1>Union sign-in code</h1>
         <p class="lede">

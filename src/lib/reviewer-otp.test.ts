@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  basicAuthOk,
   decodeQuotedPrintable,
   describeAge,
   extractOtp,
+  parseBasicAuth,
   secretMatches,
 } from './reviewer-otp'
 
@@ -124,6 +126,79 @@ describe('secretMatches', () => {
   it('rejects everything when no secret is configured', () => {
     expect(secretMatches('', '')).toBe(false)
     expect(secretMatches('anything', '')).toBe(false)
+  })
+})
+
+describe('parseBasicAuth', () => {
+  const encode = (u: string, p: string) => `Basic ${btoa(`${u}:${p}`)}`
+
+  it('splits a well-formed header', () => {
+    expect(parseBasicAuth(encode('reviewer', 'hunter2'))).toEqual({
+      user: 'reviewer',
+      pass: 'hunter2',
+    })
+  })
+
+  it('accepts the scheme case-insensitively (RFC 7617)', () => {
+    expect(parseBasicAuth(`basic ${btoa('a:b')}`)).toEqual({
+      user: 'a',
+      pass: 'b',
+    })
+  })
+
+  // A password containing a colon must survive intact. Splitting on every
+  // colon would truncate it — and a truncated password could compare equal
+  // to a shorter wrong one.
+  it('only splits on the first colon so colons in the password survive', () => {
+    expect(parseBasicAuth(encode('reviewer', 'a:b:c'))).toEqual({
+      user: 'reviewer',
+      pass: 'a:b:c',
+    })
+  })
+
+  it('allows an empty password', () => {
+    expect(parseBasicAuth(encode('reviewer', ''))).toEqual({
+      user: 'reviewer',
+      pass: '',
+    })
+  })
+
+  it('returns null for malformed input rather than throwing', () => {
+    expect(parseBasicAuth(null)).toBe(null)
+    expect(parseBasicAuth('')).toBe(null)
+    expect(parseBasicAuth('Bearer abc')).toBe(null)
+    expect(parseBasicAuth('Basic')).toBe(null)
+    expect(parseBasicAuth('Basic !!!not-base64!!!')).toBe(null)
+    // Valid base64, but no colon to split on.
+    expect(parseBasicAuth(`Basic ${btoa('nocolon')}`)).toBe(null)
+  })
+})
+
+describe('basicAuthOk', () => {
+  const header = (u: string, p: string) => `Basic ${btoa(`${u}:${p}`)}`
+
+  it('accepts the configured credentials', () => {
+    expect(basicAuthOk(header('reviewer', 'sekrit'), 'reviewer', 'sekrit')).toBe(
+      true,
+    )
+  })
+
+  it('rejects a wrong password, wrong user, or missing header', () => {
+    expect(basicAuthOk(header('reviewer', 'nope'), 'reviewer', 'sekrit')).toBe(
+      false,
+    )
+    expect(basicAuthOk(header('someone', 'sekrit'), 'reviewer', 'sekrit')).toBe(
+      false,
+    )
+    expect(basicAuthOk(null, 'reviewer', 'sekrit')).toBe(false)
+  })
+
+  // The important one: a half-configured deploy must LOCK the page, not
+  // open it. An unset password with an empty guess must still fail.
+  it('fails closed when the expected credentials are unset', () => {
+    expect(basicAuthOk(header('reviewer', ''), 'reviewer', '')).toBe(false)
+    expect(basicAuthOk(header('', ''), '', '')).toBe(false)
+    expect(basicAuthOk(header('reviewer', 'sekrit'), '', '')).toBe(false)
   })
 })
 
