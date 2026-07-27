@@ -9,9 +9,10 @@
   //     Custom address: reviewer.play@unionwith.app
   //     Action:         Send to a Worker -> union-reviewer-otp-inbox
   //
-  // The KV namespace id below must be created once:
+  // The KV namespace below was created with:
   //   npx wrangler kv namespace create REVIEWER_OTP
-  // then paste the returned id in place of the placeholder.
+  // The SAME namespace is bound to the union-webapp Worker (root
+  // wrangler.jsonc) so the page can read what this Worker writes.
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "union-reviewer-otp-inbox",
   "main": "src/index.ts",
@@ -28,7 +29,7 @@
   "kv_namespaces": [
     {
       "binding": "REVIEWER_OTP",
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+      "id": "0995f183d14a4def886eee6dc2a0247b"
     }
   ]
 }
