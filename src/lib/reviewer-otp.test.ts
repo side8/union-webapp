@@ -39,7 +39,7 @@ describe('extractOtp', () => {
     ).toBe('130456')
   })
 
-  // Headers are dense with six-digit noise — Message-ID above contains
+  // Headers are dense with digit noise — Message-ID above contains
   // both "209431" and "847216". Scanning the whole message would return
   // one of those instead of the real code.
   it('ignores six-digit runs in the headers', () => {
@@ -70,21 +70,32 @@ describe('extractOtp', () => {
     expect(extractOtp(email(body))).toBe('246810')
   })
 
-  // If a template change ever puts two DIFFERENT six-digit numbers in the
-  // body we cannot know which is the code, so we must refuse rather than
-  // guess and hand the reviewer a failing code.
-  it('returns null when two different six-digit values compete', () => {
-    expect(extractOtp(email('Code 111222, ref 333444'))).toBe(null)
+  // A LABELLED value beats counting distinct runs — and it has to, because real
+  // magic-link mail always carries extra ids. (This expectation changed
+  // deliberately; the original refused here, which is why production failed.)
+  it('prefers the value labelled as the code over other digit runs', () => {
+    expect(extractOtp(email('Code 111222, ref 333444'))).toBe('111222')
   })
 
-  it('does not match digits embedded in a longer run', () => {
-    expect(extractOtp(email('order 1234567 shipped'))).toBe(null)
-    expect(extractOtp(email('token abc123456def'))).toBe(null)
+  // With no label, competing values are genuinely ambiguous: still refuse.
+  it('returns null when unlabelled digit runs compete', () => {
+    expect(extractOtp(email('Reference 111222, batch 333444'))).toBe(null)
   })
 
-  it('does not match five or seven digit values', () => {
+  it('does not match digits welded to letters', () => {
+    expect(extractOtp(email('token abc12345678def'))).toBe(null)
+  })
+
+  // Boundaries of the accepted range. Union's code is 8 digits and the length
+  // is a Supabase setting (6-10), so 7 is a legitimate candidate, not noise.
+  it('accepts any length within the configurable OTP range', () => {
+    expect(extractOtp(email('pin 1234567'))).toBe('1234567')
+    expect(extractOtp(email('pin 1234567890'))).toBe('1234567890')
+  })
+
+  it('rejects runs outside the OTP range', () => {
     expect(extractOtp(email('pin 12345'))).toBe(null)
-    expect(extractOtp(email('pin 1234567'))).toBe(null)
+    expect(extractOtp(email('pin 123456789012'))).toBe(null)
   })
 
   // The real-world failure mode: quoted-printable inserts a soft break
@@ -97,6 +108,115 @@ describe('extractOtp', () => {
 
   it('handles a message with no header/body separator at all', () => {
     expect(extractOtp('482913')).toBe('482913')
+  })
+})
+
+// THE fixture that matters: a faithful reproduction of what Resend actually
+// delivers, captured from production via digit-masked diagnostic logging.
+//
+// Two parser versions passed synthetic fixtures and failed this, for one
+// reason: Union's code is EIGHT digits ("Your 8-digit sign-in code:") and the
+// parser hard-coded \d{6}. It found no 6-digit run because there wasn't one,
+// and correctly refused. The refusal logic was right; the length was wrong.
+//
+// Real quirks preserved deliberately: nodemailer boundary, 8bit plain part,
+// quoted-printable HTML part whose soft line break falls INSIDE a style
+// attribute, and 2-3 digit CSS values that must not be read as a code.
+const REAL_EMAIL = [
+  'From: noreply@send.unionwith.app',
+  'To: reviewer.play@unionwith.app',
+  'Subject: Sign in to Union',
+  'MIME-Version: 1.0',
+  'Content-Type: multipart/alternative;',
+  ' boundary="--_NmP-1234567ae8ddccfb-Part_1"',
+  '',
+  '----_NmP-1234567ae8ddccfb-Part_1',
+  'Content-Type: text/plain; charset=utf-8',
+  'Content-Transfer-Encoding: 8bit',
+  '',
+  'SIGN IN TO UNION',
+  '',
+  'Your 8-digit sign-in code:',
+  '',
+  '49382716',
+  '',
+  "If you didn't request this, you can safely ignore this email.",
+  '----_NmP-1234567ae8ddccfb-Part_1',
+  'Content-Type: text/html; charset=utf-8',
+  'Content-Transfer-Encoding: quoted-printable',
+  '',
+  '<h2>Sign in to Union</h2>',
+  '',
+  '  <p>Your 8-digit sign-in code:</p>',
+  "  <p style=3D\"font-size:32px;letter-spacing:12px;font-family:'Courier New',=",
+  'monospace;font-weight:bold;margin:16px 0;">',
+  '    49382716',
+  '  </p>',
+  '',
+  '  <p style=3D"color:#ccc;font-size:12px;margin-top:24px;">',
+  "    If you didn't request this, you can safely ignore this email.",
+  '  </p>',
+  '',
+  '----_NmP-1234567ae8ddccfb-Part_1--',
+].join('\r\n')
+
+describe('extractOtp — the real Resend/Supabase email', () => {
+  it('extracts the 8-digit code from the actual delivered message', () => {
+    expect(extractOtp(REAL_EMAIL)).toBe('49382716')
+  })
+
+  it('reads the code, not the CSS numbers around it', () => {
+    // 32, 12, 16, 24 and #ccc all appear as style values.
+    expect(extractOtp(REAL_EMAIL)).toHaveLength(8)
+  })
+
+  // The length is a Supabase setting. If it is retuned, the parser must follow
+  // rather than silently refuse every email again.
+  it('follows the template if the length changes to 6 digits', () => {
+    const six = REAL_EMAIL.replace(/49382716/g, '405913').replace(
+      /8-digit/g,
+      '6-digit',
+    )
+    expect(extractOtp(six)).toBe('405913')
+  })
+})
+
+describe('extractOtp — other MIME shapes', () => {
+  const b64 = (s: string) => Buffer.from(s, 'utf8').toString('base64')
+
+  it('handles a base64-encoded HTML part', () => {
+    const raw = [
+      'To: reviewer.play@unionwith.app',
+      'Content-Type: multipart/alternative; boundary="bnd1"',
+      '',
+      '--bnd1',
+      'Content-Type: text/html',
+      'Content-Transfer-Encoding: base64',
+      '',
+      b64('<p>Your 8-digit sign-in code:</p><b>81726354</b>'),
+      '--bnd1--',
+    ].join('\r\n')
+    expect(extractOtp(raw)).toBe('81726354')
+  })
+
+  it('survives a corrupt part without losing a good one', () => {
+    const raw = [
+      'To: reviewer.play@unionwith.app',
+      'Content-Type: multipart/alternative; boundary="bnd2"',
+      '',
+      '--bnd2',
+      'Content-Type: text/html',
+      'Content-Transfer-Encoding: base64',
+      '',
+      '!!!! not base64 !!!!',
+      '--bnd2',
+      'Content-Type: text/plain',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      'Your 8-digit sign-in code: 24680246',
+      '--bnd2--',
+    ].join('\r\n')
+    expect(extractOtp(raw)).toBe('24680246')
   })
 })
 

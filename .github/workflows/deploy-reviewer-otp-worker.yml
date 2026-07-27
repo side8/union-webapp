@@ -1,0 +1,87 @@
+name: Deploy reviewer-OTP Email Worker
+
+# Deploys workers/reviewer-otp-inbox on merge to main, so the Worker's live
+# behaviour always matches what is in the repo.
+#
+# Why this exists: while chasing a parser bug, this Worker was deployed several
+# times straight from a working tree. Debugging that way was necessary (the bug
+# only reproduced against real inbound email), but it left production running
+# code that existed nowhere in main — unreviewable, and silently reverted by the
+# next deploy from a clean checkout. Merge is now the only thing that ships it.
+#
+# Deliberately NOT deployed on pull_request: a PR must never be able to change
+# live behaviour before review. It runs the unit tests on PRs instead, so the
+# parser is gated without touching production.
+#
+# One-time setup: add a repo secret CLOUDFLARE_API_TOKEN with an API token
+# scoped to "Edit Cloudflare Workers" plus Workers KV Storage:Edit on this
+# account. (Account-level token, not a global key.)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workers/reviewer-otp-inbox/**'
+      # The Worker imports the parser from src/lib, so a change there changes
+      # the deployed Worker even though the path looks unrelated.
+      - 'src/lib/reviewer-otp.ts'
+      - '.github/workflows/deploy-reviewer-otp-worker.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'workers/reviewer-otp-inbox/**'
+      - 'src/lib/reviewer-otp.ts'
+      - '.github/workflows/deploy-reviewer-otp-worker.yml'
+
+concurrency:
+  # Never let two deploys race; cancel a superseded PR test run.
+  group: reviewer-otp-worker-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: parser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The Worker is a thin shell; the logic that can silently break — MIME
+      # decoding, OTP length, refusing to guess — lives in src/lib and is what
+      # these cover.
+      - run: npx vitest run src/lib/reviewer-otp.test.ts
+
+  deploy:
+    name: deploy to Cloudflare
+    # Only after tests pass, and never from a pull request.
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Fail loudly on a missing token rather than with a cryptic wrangler auth
+      # error, since a silent no-deploy would leave main and production adrift —
+      # exactly the problem this workflow exists to prevent.
+      - name: Preflight — require the Cloudflare token
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Secret CLOUDFLARE_API_TOKEN is not set. Create an account-scoped token with 'Edit Cloudflare Workers' + 'Workers KV Storage:Edit' and add it as a repo secret."
+            exit 1
+          fi
+
+      - name: Deploy
+        working-directory: workers/reviewer-otp-inbox
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy
