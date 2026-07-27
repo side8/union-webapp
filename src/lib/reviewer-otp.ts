@@ -1,6 +1,7 @@
 // Google Play reviewer sign-in support.
 //
-// Union has no password: sign-in emails a 6-digit one-time code. Google
+// Union has no password: sign-in emails a one-time code (EIGHT digits today
+// — see the OTP_MIN/OTP_MAX note below; assuming six broke this in production). Google
 // Play review can't work with that — reviewers may not use their own
 // accounts, and Play requires sign-in details that are "accessible at all
 // times, reusable, and valid regardless of user location", explicitly
@@ -46,38 +47,98 @@ export function decodeQuotedPrintable(input: string): string {
     )
 }
 
-// Pulls the 6-digit sign-in code out of a raw Supabase OTP email.
+// Splits a raw MIME message into decoded body parts.
 //
-// Deliberately conservative: a raw MIME message is full of six-digit-ish
-// noise (dates, message ids, boundary strings, tracking params), so a bare
-// \d{6} scan over the whole payload is not safe. Instead we only look at
-// the message BODY, skip anything that is part of a longer alphanumeric
-// run, and require the match to be a standalone token.
+// Real mail is not one flat body. Resend delivers the Supabase OTP as
+// multipart/alternative: a text/plain part (8bit) plus a text/html part
+// (quoted-printable, whose soft line breaks fall inside style attributes).
+// Scanning the raw payload undecoded manufactures spurious digit runs and can
+// split the code — captured from production, so this is observed, not assumed.
 //
-// Returns null when no code is found — the caller must not store garbage,
-// because a wrong code on the page is worse than an empty page (the
-// reviewer would retype it, fail, and likely reject the app).
+// Returns one decoded string per part.
+export function decodeMimeParts(raw: string): string[] {
+  const headerEnd = raw.search(/\r?\n\r?\n/)
+  const headers = headerEnd === -1 ? '' : raw.slice(0, headerEnd)
+  const body = headerEnd === -1 ? raw : raw.slice(headerEnd)
+
+  const boundary = /boundary="?([^"\s;]+)"?/i.exec(headers)?.[1]
+  const chunks = boundary
+    ? body.split(
+        new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
+      )
+    : [raw]
+
+  return chunks
+    .map((chunk) => {
+      const sep = chunk.search(/\r?\n\r?\n/)
+      // No blank line means no part headers — treat the whole chunk as body
+      // rather than discarding it, or a payload with no MIME structure at all
+      // yields nothing.
+      const partHeaders = sep === -1 ? '' : chunk.slice(0, sep).toLowerCase()
+      const partBody = sep === -1 ? chunk : chunk.slice(sep)
+
+      if (partHeaders.includes('base64')) {
+        try {
+          return atob(partBody.replace(/[^A-Za-z0-9+/=]/g, ''))
+        } catch {
+          // A corrupt part must not cost us the other parts.
+          return ''
+        }
+      }
+      // Decode quoted-printable when declared, but ALSO when a soft line break
+      // is visibly present: an undeclared one lands mid-digits and silently
+      // splits the code.
+      if (
+        partHeaders.includes('quoted-printable') ||
+        /=(?:\r\n|\n)/.test(partBody)
+      ) {
+        return decodeQuotedPrintable(partBody)
+      }
+      return partBody
+    })
+    .filter((s) => s.length > 0)
+}
+
+// Supabase's OTP length is CONFIGURABLE (6-10). Union's is currently EIGHT —
+// the template reads "Your 8-digit sign-in code:". The first version of this
+// parser hard-coded \d{6} and therefore refused every real email with
+// "no unambiguous 6-digit code in message": there genuinely wasn't one. The
+// range is deliberate so a future retune doesn't break it again.
+const OTP_MIN = 6
+const OTP_MAX = 10
+
+// A standalone run of OTP-length digits, not adjacent to another digit or
+// letter — rules out "abc12345678" and "123456789012".
+const OTP_RUN = new RegExp(
+  `(?<![A-Za-z0-9])\\d{${OTP_MIN},${OTP_MAX}}(?![A-Za-z0-9])`,
+  'g',
+)
+
 export function extractOtp(raw: string): string | null {
-  // Headers end at the first blank line. Everything before it is metadata
-  // (Date:, Message-ID:, DKIM=...) and a rich source of false positives.
-  const separator = raw.search(/\r?\n\r?\n/)
-  const body = separator === -1 ? raw : raw.slice(separator)
+  const parts = decodeMimeParts(raw)
+  if (parts.length === 0) return null
 
-  const decoded = decodeQuotedPrintable(body)
+  // Stage 1 — anchored on the template's own wording ("...sign-in code:").
+  // Immune to unrelated numbers, which real mail is full of.
+  for (const part of parts) {
+    // Tags stripped so "code:</p><h1> 49382716" still reads as adjacent text.
+    const text = part.replace(/<[^>]*>/g, ' ')
+    const anchored = new RegExp(
+      `code[^0-9]{0,40}?(\\d{${OTP_MIN},${OTP_MAX}})(?![A-Za-z0-9])`,
+      'i',
+    ).exec(text)
+    if (anchored) return anchored[1]
+  }
 
-  // A standalone 6-digit run: not preceded or followed by another digit or
-  // a word character, which rules out "abc123456", "1234567" and
-  // "boundary=--123456xyz".
-  const matches = decoded.match(/(?<![A-Za-z0-9])\d{6}(?![A-Za-z0-9])/g)
-  if (!matches || matches.length === 0) return null
-
-  // Union's template renders exactly one code. If a future template change
-  // makes that ambiguous we would rather show nothing than guess wrong, so
-  // only accept an unambiguous result: either a single match, or several
-  // matches that agree (the code appearing in both the text and HTML parts
-  // of a multipart email is normal and not ambiguity).
-  const distinct = [...new Set(matches)]
-  return distinct.length === 1 ? distinct[0] : null
+  // Stage 2 — an unambiguous standalone run. The same code appearing in both
+  // the text and HTML parts is agreement, not ambiguity.
+  const found = new Set<string>()
+  for (const part of parts) {
+    for (const m of part.replace(/<[^>]*>/g, ' ').match(OTP_RUN) ?? []) {
+      found.add(m)
+    }
+  }
+  return found.size === 1 ? [...found][0] : null
 }
 
 // Constant-time-ish comparison for the URL secret. Not defending against a
