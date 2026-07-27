@@ -1,0 +1,144 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { env } from 'cloudflare:workers'
+import {
+  describeAge,
+  REVIEWER_OTP_KEY,
+  secretMatches,
+  type StoredOtp,
+} from '../../lib/reviewer-otp'
+
+// SSR-only — reads live KV at request time. Marketing pages stay static;
+// this one opts out, same as /share/[token].
+export const prerender = false
+
+// Google Play reviewer sign-in code.
+//
+// Union has no password (sign-in emails a 6-digit code), and Play forbids
+// reviewers using their own accounts while requiring credentials that are
+// reusable and bypass a one-time PIN. Play's documented escape hatch for a
+// credential that isn't a plain string is a static URL — this is it. See
+// ../../lib/reviewer-otp.ts for the full rationale.
+//
+// The URL secret is the only guard, so it must be a long random value held
+// in REVIEWER_PAGE_TOKEN. A missing secret makes secretMatches() reject
+// everything, i.e. the page fails CLOSED rather than becoming public.
+
+// Astro v6 + @astrojs/cloudflare: bindings come from `cloudflare:workers`.
+// Astro.locals.runtime.env was removed in v6 (accessing it throws) — the
+// same trap that broke the share route.
+const bindings = env as unknown as {
+  REVIEWER_OTP?: KVNamespace
+  REVIEWER_PAGE_TOKEN?: string
+}
+
+const provided = Astro.params.token ?? ''
+const authorised = secretMatches(provided, bindings.REVIEWER_PAGE_TOKEN ?? '')
+
+let stored: StoredOtp | null = null
+let unavailable = false
+
+if (authorised) {
+  try {
+    stored = await bindings.REVIEWER_OTP!.get<StoredOtp>(REVIEWER_OTP_KEY, 'json')
+  } catch {
+    // Never 500 in front of a reviewer mid-review — show the waiting state
+    // and let them retry, exactly as if no code had arrived yet.
+    unavailable = true
+  }
+}
+
+// A wrong or missing token is indistinguishable from a page that does not
+// exist, so the secret can't be probed for.
+if (!authorised) {
+  Astro.response.status = 404
+}
+
+// This page renders a live sign-in factor: it must never be indexed and
+// must never be cached by any hop.
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+---
+
+<Layout
+  title="Sign-in code"
+  description="Sign-in code for app review."
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+  </Fragment>
+
+  <main class="wrap">
+    {!authorised && (
+      <section>
+        <h1>Not found</h1>
+        <p>This page isn’t available.</p>
+      </section>
+    )}
+
+    {authorised && (
+      <section>
+        <h1>Union sign-in code</h1>
+        <p class="lede">
+          For reviewing Union. Enter
+          <strong> reviewer.play@unionwith.app </strong>
+          on the app’s sign-in screen, then use the code below.
+        </p>
+
+        {stored && (
+          <>
+            <p class="code" aria-label={`Sign-in code ${stored.code.split('').join(' ')}`}>
+              {stored.code}
+            </p>
+            <p class="meta">Received {describeAge(stored.receivedAt)}.</p>
+          </>
+        )}
+
+        {!stored && (
+          <p class="waiting">
+            {unavailable
+              ? 'The code service is briefly unavailable. Please reload in a few seconds.'
+              : 'No code yet. Request one in the app, then reload this page.'}
+          </p>
+        )}
+
+        <p class="meta">
+          Codes expire after a short time. If sign-in fails, request a new
+          code in the app and reload.
+        </p>
+      </section>
+    )}
+  </main>
+</Layout>
+
+<style>
+  .wrap {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .lede {
+    margin-bottom: 2rem;
+  }
+  /* Large, spaced, tabular: the reviewer is copying this by eye onto a
+     phone, so legibility matters more than styling. */
+  .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    letter-spacing: 0.15em;
+    margin: 0 0 0.5rem;
+  }
+  .waiting {
+    margin: 2rem 0;
+  }
+  .meta {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin-top: 1rem;
+  }
+</style>

@@ -1,0 +1,34 @@
+{
+  // Email Worker for the Google Play reviewer sign-in code.
+  //
+  // Deploy from THIS directory:  npx wrangler deploy
+  // (the root wrangler.jsonc is the Astro app — a different Worker.)
+  //
+  // After the first deploy, wire the ingress in the Cloudflare dashboard:
+  //   Email > Email Routing > Routing rules > Create
+  //     Custom address: reviewer.play@unionwith.app
+  //     Action:         Send to a Worker -> union-reviewer-otp-inbox
+  //
+  // The KV namespace id below must be created once:
+  //   npx wrangler kv namespace create REVIEWER_OTP
+  // then paste the returned id in place of the placeholder.
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "union-reviewer-otp-inbox",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-18",
+  "workers_dev": false,
+  "preview_urls": false,
+  // Same rationale as the root config: keep logs on so a silently
+  // non-delivering reviewer alias is diagnosable rather than a mystery
+  // during a live Play review.
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "kv_namespaces": [
+    {
+      "binding": "REVIEWER_OTP",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ]
+}
