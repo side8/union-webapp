@@ -1,0 +1,43 @@
+name: CI
+
+# union-webapp had no CI at all — only dependabot-automerge. That is how three
+# pages shipped with missing spaces in the copy ("and tapDelete Account") in
+# text written weeks apart: nothing ever looked at the rendered output.
+#
+# Runs on every PR to main so a broken page can't reach the store listing URLs
+# Google checks.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: build, test, typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Unit tests
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+      # Must run AFTER the build: it inspects rendered HTML, because the defect
+      # it catches is invisible in the source (a line break before an inline tag
+      # reads fine, renders fine locally, and is stripped by minification in
+      # production).
+      - name: Check rendered HTML spacing
+        run: node scripts/check-html-spacing.mjs
