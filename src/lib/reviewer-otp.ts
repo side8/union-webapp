@@ -260,6 +260,28 @@ export function resolveAuthorisedAddress(
   return passOk && known ? known.address : null
 }
 
+// Whether to reject an otherwise-valid request in order to re-prompt.
+//
+// HTTP Basic has no sign-out: the browser caches the credentials and
+// re-sends them unasked, and no response header reliably clears them. The
+// only lever is to answer 401, which makes the browser ask again.
+//
+// Done naively that loops forever — the browser supplies the NEW credentials
+// and a "always 401 here" endpoint rejects those too. So the link carries the
+// address being left (`?switch=<address>`) and this returns true only while
+// the request still presents THAT address. Supply a different one and it
+// authorises immediately. Stateless, and it terminates.
+//
+// A reviewer never needs this; it exists because one person holds all three
+// identities and has to move between them.
+export function shouldForceReprompt(
+  switchingFrom: string | null,
+  presentedUser: string | null,
+): boolean {
+  if (!switchingFrom || presentedUser === null) return false
+  return normaliseAddress(presentedUser) === normaliseAddress(switchingFrom)
+}
+
 // Human-friendly age, so the reviewer can tell a fresh code from a stale
 // one at a glance rather than comparing timestamps.
 export function describeAge(receivedAt: string, now: Date = new Date()): string {
