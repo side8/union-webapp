@@ -4,8 +4,10 @@ import { env } from 'cloudflare:workers'
 import {
   describeAge,
   otpKeyFor,
+  parseBasicAuth,
   resolveAuthorisedAddress,
   secretMatches,
+  shouldForceReprompt,
   type StoredOtp,
 } from '../../lib/reviewer-otp'
 
@@ -61,14 +63,28 @@ const bindings = env as unknown as {
 const provided = Astro.params.token ?? ''
 const tokenOk = secretMatches(provided, bindings.REVIEWER_PAGE_TOKEN ?? '')
 
+// "Sign out" — see shouldForceReprompt. The link carries the address being
+// left, and we 401 while that address is still the one being presented, so
+// the browser asks again instead of silently reusing what it cached.
+const authHeader = Astro.request.headers.get('Authorization')
+const switchingFrom = Astro.url.searchParams.get('switch')
+const forcePrompt = shouldForceReprompt(
+  switchingFrom,
+  parseBasicAuth(authHeader)?.user ?? null,
+)
+
 // Which address this caller is, or null. Also the authorisation decision —
 // an unrecognised username fails exactly like a wrong password.
-const address = tokenOk
-  ? resolveAuthorisedAddress(
-      Astro.request.headers.get('Authorization'),
-      bindings.REVIEWER_PAGE_PASSWORD ?? '',
-    )
-  : null
+const address =
+  tokenOk && !forcePrompt
+    ? resolveAuthorisedAddress(authHeader, bindings.REVIEWER_PAGE_PASSWORD ?? '')
+    : null
+
+// Once they have switched, drop the query so a later refresh is an ordinary
+// page load rather than a request that still names an address to avoid.
+if (address && switchingFrom) {
+  return Astro.redirect(Astro.url.pathname, 303)
+}
 
 let stored: StoredOtp | null = null
 let unavailable = false
@@ -125,6 +141,14 @@ Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
           Enter your email address as the username, with the password supplied
           with this link.
         </p>
+        {switchingFrom && (
+          // Only reached if they dismissed the browser's prompt — without
+          // this the page would look broken rather than waiting for them.
+          <p>
+            <a href={Astro.url.pathname}>Cancel</a> to go back to the code for
+            {' '}{switchingFrom}.
+          </p>
+        )}
       </section>
     )}
 
@@ -159,6 +183,12 @@ Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
         <p class="meta">
           Codes expire after a short time. If sign-in fails, request a new
           code in the app and reload.
+        </p>
+
+        <p class="meta">
+          <a href={`?switch=${encodeURIComponent(address)}`}>
+            Sign in as a different address
+          </a>
         </p>
       </section>
     )}
