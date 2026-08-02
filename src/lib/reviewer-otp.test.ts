@@ -10,6 +10,7 @@ import {
   parseBasicAuth,
   resolveAuthorisedAddress,
   secretMatches,
+  shouldForceReprompt,
 } from './reviewer-otp'
 
 // The stakes here are asymmetric: showing NO code makes the reviewer wait
@@ -340,6 +341,42 @@ describe('resolveAuthorisedAddress', () => {
     const known = OTP_ADDRESSES[0].address
     expect(resolveAuthorisedAddress(header(known, ''), '')).toBe(null)
     expect(resolveAuthorisedAddress(header(known, 'anything'), '')).toBe(null)
+  })
+})
+
+describe('shouldForceReprompt', () => {
+  const [apple, play] = OTP_ADDRESSES
+
+  it('does nothing on an ordinary request', () => {
+    expect(shouldForceReprompt(null, apple.address)).toBe(false)
+  })
+
+  // The 401 that makes the browser ask again, since Basic has no sign-out.
+  it('rejects while the address being left is still the one presented', () => {
+    expect(shouldForceReprompt(apple.address, apple.address)).toBe(true)
+  })
+
+  // THE test: done naively this loops forever, because the browser answers
+  // the 401 with new credentials and gets another 401. Supplying a different
+  // address has to end it.
+  it('lets a different address straight through', () => {
+    expect(shouldForceReprompt(apple.address, play.address)).toBe(false)
+  })
+
+  it('is not defeated by a differently-cased username', () => {
+    expect(shouldForceReprompt(apple.address, apple.address.toUpperCase())).toBe(
+      true,
+    )
+  })
+
+  it('does not reject when no credentials were sent at all', () => {
+    // Nothing to sign out of — the ordinary auth path will prompt anyway,
+    // and a 401 here would be indistinguishable from a loop.
+    expect(shouldForceReprompt(apple.address, null)).toBe(false)
+  })
+
+  it('ignores a switch value that is not one of ours', () => {
+    expect(shouldForceReprompt('someone@example.com', apple.address)).toBe(false)
   })
 })
 
