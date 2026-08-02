@@ -1,5 +1,5 @@
-// Cloudflare Email Worker: receives mail for reviewer.play@unionwith.app
-// and parks the latest Union sign-in code in KV for the Play reviewer page.
+// Cloudflare Email Worker: receives mail for the addresses in OTP_ADDRESSES
+// and parks each one's latest Union sign-in code in KV for the review page.
 //
 // Why a separate Worker rather than part of the Astro app: an Email Worker
 // is an entirely different entrypoint (an `email` export, not `fetch`), and
@@ -15,8 +15,8 @@
 
 import {
   extractOtp,
-  REVIEWER_ADDRESS,
-  REVIEWER_OTP_KEY,
+  isAllowedAddress,
+  otpKeyFor,
   REVIEWER_OTP_TTL_SECONDS,
   type StoredOtp,
 } from '../../../src/lib/reviewer-otp'
@@ -32,11 +32,11 @@ const MAX_BYTES = 256 * 1024
 
 export default {
   async email(message: ForwardableEmailMessage, env: Env): Promise<void> {
-    // Email Routing should only ever deliver the reviewer alias here, but
-    // this is a public ingress: re-check rather than trust the routing
+    // Email Routing should only ever deliver the allowlisted aliases here,
+    // but this is a public ingress: re-check rather than trust the routing
     // config, so a future misconfigured catch-all can't publish somebody
-    // else's codes on the reviewer page.
-    if (message.to.toLowerCase() !== REVIEWER_ADDRESS) {
+    // else's codes on the review page.
+    if (!isAllowedAddress(message.to)) {
       console.warn('reviewer-otp: ignoring mail for unexpected recipient')
       return
     }
@@ -58,12 +58,14 @@ export default {
     }
 
     const stored: StoredOtp = { code, receivedAt: new Date().toISOString() }
-    await env.REVIEWER_OTP.put(REVIEWER_OTP_KEY, JSON.stringify(stored), {
+    // Per-address slot, so two people signing in at once never overwrite
+    // each other's code.
+    await env.REVIEWER_OTP.put(otpKeyFor(message.to), JSON.stringify(stored), {
       expirationTtl: REVIEWER_OTP_TTL_SECONDS,
     })
 
-    // Deliberately does not log the code itself — Workers Logs are retained
-    // and this address is a live sign-in factor for the demo account.
+    // Deliberately logs neither the code nor the recipient — Workers Logs
+    // are retained, and these addresses are live sign-in factors.
     console.log('reviewer-otp: stored a fresh sign-in code')
   },
 }

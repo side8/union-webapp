@@ -31,9 +31,10 @@
     "head_sampling_rate": 1
   },
   // Shared with the union-reviewer-otp-inbox Email Worker
-  // (workers/reviewer-otp-inbox), which writes the Play reviewer's latest
-  // sign-in code here; /play-review/[token] reads it. Same namespace id on
-  // both sides — that shared binding IS the channel between them.
+  // (workers/reviewer-otp-inbox), which writes the latest sign-in code for
+  // each address in OTP_ADDRESSES here, one key per address;
+  // /play-review/[token] reads them all. Same namespace id on both sides —
+  // that shared binding IS the channel between them.
   "kv_namespaces": [
     {
       "binding": "REVIEWER_OTP",

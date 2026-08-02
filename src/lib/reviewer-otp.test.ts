@@ -4,6 +4,10 @@ import {
   decodeQuotedPrintable,
   describeAge,
   extractOtp,
+  isAllowedAddress,
+  normaliseAddress,
+  OTP_ADDRESSES,
+  otpKeyFor,
   parseBasicAuth,
   secretMatches,
 } from './reviewer-otp'
@@ -339,5 +343,104 @@ describe('describeAge', () => {
 
   it('degrades gracefully on an unparseable timestamp', () => {
     expect(describeAge('not-a-date', now)).toBe('unknown age')
+  })
+})
+
+describe('OTP_ADDRESSES', () => {
+  // These three are what the page renders and the Worker accepts. Losing
+  // one silently means a reviewer sits in front of a page that never shows
+  // their code, with nothing failing anywhere to say why.
+  it('covers the three addresses that need codes', () => {
+    expect(OTP_ADDRESSES.map((e) => e.address)).toEqual([
+      'reviewer.apple@unionwith.app',
+      'reviewer.play@unionwith.app',
+      'hannah@unionwith.app',
+    ])
+  })
+
+  // isAllowedAddress and otpKeyFor both fold case, so an entry stored with
+  // a capital would be unreachable: allowed on the way in, looked up under
+  // a key nothing ever wrote.
+  it('is stored already normalised', () => {
+    for (const { address } of OTP_ADDRESSES) {
+      expect(address).toBe(normaliseAddress(address))
+    }
+  })
+
+  it('gives every address its own slot', () => {
+    const keys = OTP_ADDRESSES.map((e) => otpKeyFor(e.address))
+    expect(new Set(keys).size).toBe(OTP_ADDRESSES.length)
+  })
+
+  it('labels every address for the page', () => {
+    for (const { label } of OTP_ADDRESSES) {
+      expect(label.trim().length).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('normaliseAddress', () => {
+  it('folds case and trims', () => {
+    expect(normaliseAddress('  Hannah@UnionWith.app \r\n')).toBe(
+      'hannah@unionwith.app',
+    )
+  })
+
+  // `message.to` is a bare address in practice, but the display-name form
+  // exists. Left unhandled it would fail the allowlist AND, if it somehow
+  // got through, become a KV key with angle brackets in it.
+  it('unwraps a display-name form', () => {
+    expect(normaliseAddress('Hannah Reed <hannah@unionwith.app>')).toBe(
+      'hannah@unionwith.app',
+    )
+  })
+
+  it('leaves an ordinary address alone', () => {
+    expect(normaliseAddress('hannah@unionwith.app')).toBe(
+      'hannah@unionwith.app',
+    )
+  })
+})
+
+describe('isAllowedAddress', () => {
+  it('accepts each allowlisted address', () => {
+    for (const { address } of OTP_ADDRESSES) {
+      expect(isAllowedAddress(address)).toBe(true)
+    }
+  })
+
+  it('accepts them regardless of case or surrounding whitespace', () => {
+    expect(isAllowedAddress(' REVIEWER.PLAY@unionwith.app ')).toBe(true)
+  })
+
+  // The Worker is a public ingress. A misconfigured catch-all route must
+  // not be able to publish a real person's sign-in code on this page.
+  it('rejects anything else, including near-misses', () => {
+    expect(isAllowedAddress('duncan@unionwith.app')).toBe(false)
+    expect(isAllowedAddress('hannah@unionwith.app.evil.com')).toBe(false)
+    expect(isAllowedAddress('hannah@example.com')).toBe(false)
+    expect(isAllowedAddress('')).toBe(false)
+  })
+
+  // Plus-addressing is a different mailbox as far as this allowlist is
+  // concerned — and accepting it would let anyone who can send mail to
+  // hannah+anything@ overwrite the real slot.
+  it('rejects a plus-addressed variant', () => {
+    expect(isAllowedAddress('hannah+test@unionwith.app')).toBe(false)
+  })
+})
+
+describe('otpKeyFor', () => {
+  it('namespaces the key by address', () => {
+    expect(otpKeyFor('hannah@unionwith.app')).toBe('code:hannah@unionwith.app')
+  })
+
+  // The Worker writes from `message.to` and the page reads from the
+  // constant. If those two normalised differently the page would show
+  // "No code yet" forever while KV quietly held the code.
+  it('derives the same key from a raw recipient and the constant', () => {
+    expect(otpKeyFor(' Hannah Reed <Hannah@UnionWith.app> ')).toBe(
+      otpKeyFor('hannah@unionwith.app'),
+    )
   })
 })

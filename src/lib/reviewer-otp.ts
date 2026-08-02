@@ -1,4 +1,4 @@
-// Google Play reviewer sign-in support.
+// Store-review and demo sign-in support.
 //
 // Union has no password: sign-in emails a one-time code (EIGHT digits today
 // — see the OTP_MIN/OTP_MAX note below; assuming six broke this in production). Google
@@ -8,27 +8,70 @@
 // telling developers to supply credentials that BYPASS a one-time PIN.
 //
 // Play's own escape hatch for a credential that isn't a plain string is a
-// static URL. So: reviewer.play@unionwith.app is routed through a
-// Cloudflare Email Worker, which parks the latest code in KV, and an
-// unguessable page renders it. The reviewer types the email address into
-// Union, opens the URL, reads the code. Nothing to expire, no mailbox to
-// share, no Google 2-step challenge.
+// static URL. So the addresses below are routed through a Cloudflare Email
+// Worker, which parks each one's latest code in KV, and an unguessable page
+// renders them. The reader types the email address into Union, opens the
+// URL, reads the code. Nothing to expire, no mailbox to share, no Google
+// 2-step challenge.
 //
 // This module is the pure half (parsing + policy) so it is unit-testable
 // without a Workers runtime; the Worker and the page are thin shells.
-
-// Single-slot store: the reviewer only ever needs the most recent code.
-export const REVIEWER_OTP_KEY = 'latest'
 
 // How long a stored code stays readable. Supabase expires the OTP itself
 // well inside this; the TTL exists so a code can never linger in KV after
 // it has stopped being useful.
 export const REVIEWER_OTP_TTL_SECONDS = 900
 
-// Only mail actually addressed to the reviewer alias is accepted. Email
-// Routing should only ever deliver that address here, but the Worker is a
-// public ingress point, so it re-checks rather than trusting routing.
-export const REVIEWER_ADDRESS = 'reviewer.play@unionwith.app'
+// Only mail addressed to one of these is accepted. Email Routing should
+// only ever deliver these here, but the Worker is a public ingress point,
+// so it re-checks rather than trusting routing — a future misconfigured
+// catch-all must not be able to publish somebody else's codes.
+//
+// Each address gets its OWN slot in KV. A shared slot would mean whichever
+// mail arrived last wins, so two people signing in at once would read each
+// other's code and both fail — the kind of thing that goes wrong precisely
+// when a review is live.
+//
+// The labels are what the page shows. They exist so a reader with three
+// codes in front of them can tell instantly which one is theirs.
+export const OTP_ADDRESSES = [
+  {
+    address: 'reviewer.apple@unionwith.app',
+    label: 'Apple App Review',
+  },
+  {
+    address: 'reviewer.play@unionwith.app',
+    label: 'Google Play review',
+  },
+  {
+    address: 'hannah@unionwith.app',
+    label: 'Hannah Reed — demo and screenshots',
+  },
+] as const
+
+// Normalises a recipient for comparison and for use as a KV key.
+//
+// `message.to` arrives as a bare address in practice, but the header form
+// `Display Name <a@b>` exists and a stray one must not slip past the
+// allowlist as "unrecognised" — nor become a KV key with angle brackets in
+// it. Addresses are case-insensitive in practice for our mail, so fold.
+export function normaliseAddress(to: string): string {
+  const trimmed = to.trim()
+  const angled = /<([^>]*)>\s*$/.exec(trimmed)
+  return (angled ? angled[1] : trimmed).trim().toLowerCase()
+}
+
+// Whether mail for this recipient should be stored at all.
+export function isAllowedAddress(to: string): boolean {
+  const normalised = normaliseAddress(to)
+  return OTP_ADDRESSES.some((entry) => entry.address === normalised)
+}
+
+// The KV key holding the latest code for one address. Single-slot per
+// address: only the most recent code is ever wanted.
+export function otpKeyFor(address: string): string {
+  return `code:${normaliseAddress(address)}`
+}
 
 export interface StoredOtp {
   code: string
