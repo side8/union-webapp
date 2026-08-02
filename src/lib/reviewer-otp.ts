@@ -32,21 +32,12 @@ export const REVIEWER_OTP_TTL_SECONDS = 900
 // other's code and both fail — the kind of thing that goes wrong precisely
 // when a review is live.
 //
-// The labels are what the page shows. They exist so a reader with three
-// codes in front of them can tell instantly which one is theirs.
+// The address doubles as the page's Basic-auth username, so a reader is only
+// ever shown the one code that is theirs. See resolveAuthorisedAddress.
 export const OTP_ADDRESSES = [
-  {
-    address: 'reviewer.apple@unionwith.app',
-    label: 'Apple App Review',
-  },
-  {
-    address: 'reviewer.play@unionwith.app',
-    label: 'Google Play review',
-  },
-  {
-    address: 'hannah@unionwith.app',
-    label: 'Hannah Reed — demo and screenshots',
-  },
+  { address: 'reviewer.apple@unionwith.app' },
+  { address: 'reviewer.play@unionwith.app' },
+  { address: 'hannah@unionwith.app' },
 ] as const
 
 // Normalises a recipient for comparison and for use as a KV key.
@@ -237,23 +228,36 @@ export function parseBasicAuth(header: string | null): BasicCredentials | null {
   }
 }
 
-// Whether an Authorization header satisfies the configured credentials.
+// Resolves an Authorization header to the ONE address whose code the caller
+// may read, or null.
 //
-// Fails CLOSED: if either expected value is unset (a half-configured
-// deploy), secretMatches rejects everything, so the page stays locked
-// rather than silently becoming open.
-export function basicAuthOk(
+// The username IS the email address being signed in with — the same string
+// the reviewer types on Union's sign-in screen, so there is nothing extra to
+// remember and no way to read the code off the wrong row. The page then
+// shows that address alone.
+//
+// This deliberately moves the username from "a secret" to "an identifier".
+// The guarding is done by the two things that remain secret: the unguessable
+// URL token (a wrong one 404s before the prompt) and the shared password.
+// What it buys is that three parties can be handed the same link and each
+// sees only their own code.
+//
+// Fails CLOSED: an unset password makes secretMatches reject everything, so
+// a half-configured deploy leaves the page locked rather than open.
+export function resolveAuthorisedAddress(
   header: string | null,
-  expectedUser: string,
   expectedPass: string,
-): boolean {
+): string | null {
   const provided = parseBasicAuth(header)
-  if (!provided) return false
-  // Both compares always run — no short-circuit on the username, so the
+  if (!provided) return null
+
+  // Both checks always run — no short-circuit on the username, so the
   // response time doesn't reveal which half was wrong.
-  const userOk = secretMatches(provided.user, expectedUser)
   const passOk = secretMatches(provided.pass, expectedPass)
-  return userOk && passOk
+  const normalised = normaliseAddress(provided.user)
+  const known = OTP_ADDRESSES.find((entry) => entry.address === normalised)
+
+  return passOk && known ? known.address : null
 }
 
 // Human-friendly age, so the reviewer can tell a fresh code from a stale
