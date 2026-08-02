@@ -2,10 +2,9 @@
 import Layout from '../../layouts/Layout.astro'
 import { env } from 'cloudflare:workers'
 import {
-  basicAuthOk,
   describeAge,
-  OTP_ADDRESSES,
   otpKeyFor,
+  resolveAuthorisedAddress,
   secretMatches,
   type StoredOtp,
 } from '../../lib/reviewer-otp'
@@ -23,12 +22,12 @@ export const prerender = false
 // App Review and the demo/screenshots account use the same mechanism. See
 // ../../lib/reviewer-otp.ts for the full rationale.
 //
-// ONE page serves all three addresses rather than one page each: it is one
-// token, one password, and one Email Routing target to keep working, and a
-// reviewer who mistypes the address still finds their code on the page they
-// were given. The tradeoff is that a holder of this link can read all three
-// codes — acceptable because every one of them is a Union-owned account
-// with no real user data, and the page is already behind two gates.
+// ONE page serves all three addresses rather than one page each: one token,
+// one password, one Email Routing target to keep working. Who you are is
+// carried by the Basic-auth USERNAME, which is the email address itself —
+// the same string typed on Union's sign-in screen — and the page renders
+// only that address's code. So the three parties share a link and none of
+// them can read another's code, or copy the wrong one off a list.
 //
 // The URL path stays /play-review/* even though it now serves more than
 // Play: the value is pasted into store consoles and written down in the
@@ -44,7 +43,6 @@ export const prerender = false
 const bindings = env as unknown as {
   REVIEWER_OTP?: KVNamespace
   REVIEWER_PAGE_TOKEN?: string
-  REVIEWER_PAGE_USER?: string
   REVIEWER_PAGE_PASSWORD?: string
 }
 
@@ -52,9 +50,10 @@ const bindings = env as unknown as {
 //
 // 1. URL token — a wrong token 404s BEFORE the password prompt, so the
 //    page's existence is never revealed to someone guessing paths.
-// 2. HTTP Basic auth — the password the reviewer is given. Basic is the
-//    right fit here: Play's App access form has literal Username and
-//    Password fields, and the browser renders the prompt natively.
+// 2. HTTP Basic auth — username is the email address being signed in with,
+//    password is the shared secret. Basic is the right fit here: Play's App
+//    access form has literal Username and Password fields, and the browser
+//    renders the prompt natively.
 //
 // Keeping both is deliberate defence in depth: the URL is pasted into a
 // Play Console field and may be seen by more people than intended, and
@@ -62,47 +61,35 @@ const bindings = env as unknown as {
 const provided = Astro.params.token ?? ''
 const tokenOk = secretMatches(provided, bindings.REVIEWER_PAGE_TOKEN ?? '')
 
-const passwordOk =
-  tokenOk &&
-  basicAuthOk(
-    Astro.request.headers.get('Authorization'),
-    bindings.REVIEWER_PAGE_USER ?? '',
-    bindings.REVIEWER_PAGE_PASSWORD ?? '',
-  )
+// Which address this caller is, or null. Also the authorisation decision —
+// an unrecognised username fails exactly like a wrong password.
+const address = tokenOk
+  ? resolveAuthorisedAddress(
+      Astro.request.headers.get('Authorization'),
+      bindings.REVIEWER_PAGE_PASSWORD ?? '',
+    )
+  : null
 
-// One read per address. They are independent slots, so a miss on one must
-// not hide the others.
-let codes: { address: string; label: string; stored: StoredOtp | null }[] = []
+let stored: StoredOtp | null = null
 let unavailable = false
 
-if (passwordOk) {
+if (address) {
   try {
-    codes = await Promise.all(
-      OTP_ADDRESSES.map(async ({ address, label }) => ({
-        address,
-        label,
-        stored: await bindings.REVIEWER_OTP!.get<StoredOtp>(
-          otpKeyFor(address),
-          'json',
-        ),
-      })),
+    stored = await bindings.REVIEWER_OTP!.get<StoredOtp>(
+      otpKeyFor(address),
+      'json',
     )
   } catch {
     // Never 500 in front of a reviewer mid-review — show the waiting state
     // and let them retry, exactly as if no code had arrived yet.
     unavailable = true
-    codes = OTP_ADDRESSES.map(({ address, label }) => ({
-      address,
-      label,
-      stored: null,
-    }))
   }
 }
 
 if (!tokenOk) {
   // Indistinguishable from a page that does not exist.
   Astro.response.status = 404
-} else if (!passwordOk) {
+} else if (!address) {
   // Triggers the browser's native credentials prompt. The realm is
   // deliberately bland — it should not advertise what the page holds.
   Astro.response.status = 401
@@ -131,47 +118,43 @@ Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
       </section>
     )}
 
-    {tokenOk && !passwordOk && (
+    {tokenOk && !address && (
       <section>
         <h1>Sign in required</h1>
-        <p>Enter the username and password supplied with this link.</p>
+        <p>
+          Enter your email address as the username, with the password supplied
+          with this link.
+        </p>
       </section>
     )}
 
-    {passwordOk && (
+    {address && (
       <section>
-        <h1>Union sign-in codes</h1>
+        <h1>Union sign-in code</h1>
         <p class="lede">
-          Enter your email address on the app’s sign-in screen, then read the
-          matching code below.
+          Enter <strong>{address}</strong> on the app’s sign-in screen, then
+          use the code below.
         </p>
 
-        {codes.map(({ address, label, stored }) => (
-          <article class="slot">
-            <h2>{label}</h2>
-            <p class="address">{address}</p>
+        {stored && (
+          <>
+            <p
+              class="code"
+              aria-label={`Sign-in code ${stored.code.split('').join(' ')}`}
+            >
+              {stored.code}
+            </p>
+            <p class="meta">Received {describeAge(stored.receivedAt)}.</p>
+          </>
+        )}
 
-            {stored && (
-              <>
-                <p
-                  class="code"
-                  aria-label={`Sign-in code ${stored.code.split('').join(' ')}`}
-                >
-                  {stored.code}
-                </p>
-                <p class="meta">Received {describeAge(stored.receivedAt)}.</p>
-              </>
-            )}
-
-            {!stored && (
-              <p class="waiting">
-                {unavailable
-                  ? 'The code service is briefly unavailable. Please reload in a few seconds.'
-                  : 'No code yet. Request one in the app, then reload this page.'}
-              </p>
-            )}
-          </article>
-        ))}
+        {!stored && (
+          <p class="waiting">
+            {unavailable
+              ? 'The code service is briefly unavailable. Please reload in a few seconds.'
+              : 'No code yet. Request one in the app, then reload this page.'}
+          </p>
+        )}
 
         <p class="meta">
           Codes expire after a short time. If sign-in fails, request a new
@@ -194,24 +177,8 @@ Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
   }
   .lede {
     margin-bottom: 2rem;
-  }
-  /* Each address is a distinct block so three codes on one page can never
-     be read off against the wrong address. */
-  .slot {
-    padding: 1.25rem 0;
-    border-top: 1px solid rgba(0, 0, 0, 0.12);
-  }
-  .slot h2 {
-    font-size: 1rem;
-    margin: 0;
-  }
-  .address {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.9rem;
-    opacity: 0.7;
-    margin: 0.15rem 0 0.5rem;
-    /* A long address must wrap rather than push the page sideways on a
-       phone, which is what a reviewer is holding. */
+    /* The address is in here, and must wrap rather than push the page
+       sideways on a phone — which is what a reviewer is holding. */
     overflow-wrap: anywhere;
   }
   /* Large, spaced, tabular: the reviewer is copying this by eye onto a

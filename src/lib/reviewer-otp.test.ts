@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  basicAuthOk,
   decodeQuotedPrintable,
   describeAge,
   extractOtp,
@@ -9,6 +8,7 @@ import {
   OTP_ADDRESSES,
   otpKeyFor,
   parseBasicAuth,
+  resolveAuthorisedAddress,
   secretMatches,
 } from './reviewer-otp'
 
@@ -298,31 +298,48 @@ describe('parseBasicAuth', () => {
   })
 })
 
-describe('basicAuthOk', () => {
+describe('resolveAuthorisedAddress', () => {
   const header = (u: string, p: string) => `Basic ${btoa(`${u}:${p}`)}`
+  const PASS = 'sekrit'
 
-  it('accepts the configured credentials', () => {
-    expect(basicAuthOk(header('reviewer', 'sekrit'), 'reviewer', 'sekrit')).toBe(
-      true,
+  it('resolves each allowlisted address from its own username', () => {
+    for (const { address } of OTP_ADDRESSES) {
+      expect(resolveAuthorisedAddress(header(address, PASS), PASS)).toBe(address)
+    }
+  })
+
+  // This is the whole point of keying on the username: three parties share
+  // one link and one password, and each is shown only their own code.
+  it('never resolves one address from another address’s username', () => {
+    const [apple, play] = OTP_ADDRESSES
+    expect(resolveAuthorisedAddress(header(apple.address, PASS), PASS)).not.toBe(
+      play.address,
     )
   })
 
-  it('rejects a wrong password, wrong user, or missing header', () => {
-    expect(basicAuthOk(header('reviewer', 'nope'), 'reviewer', 'sekrit')).toBe(
-      false,
-    )
-    expect(basicAuthOk(header('someone', 'sekrit'), 'reviewer', 'sekrit')).toBe(
-      false,
-    )
-    expect(basicAuthOk(null, 'reviewer', 'sekrit')).toBe(false)
+  it('normalises the username the same way the Worker does', () => {
+    // Otherwise a reviewer who types their address with a capital, or whose
+    // browser sends the display-name form, gets a 401 with correct details.
+    expect(
+      resolveAuthorisedAddress(header(' Hannah@UnionWith.app ', PASS), PASS),
+    ).toBe('hannah@unionwith.app')
+  })
+
+  it('rejects a wrong password, an unknown username, or no header', () => {
+    const known = OTP_ADDRESSES[0].address
+    expect(resolveAuthorisedAddress(header(known, 'nope'), PASS)).toBe(null)
+    expect(
+      resolveAuthorisedAddress(header('duncan@unionwith.app', PASS), PASS),
+    ).toBe(null)
+    expect(resolveAuthorisedAddress(null, PASS)).toBe(null)
   })
 
   // The important one: a half-configured deploy must LOCK the page, not
   // open it. An unset password with an empty guess must still fail.
-  it('fails closed when the expected credentials are unset', () => {
-    expect(basicAuthOk(header('reviewer', ''), 'reviewer', '')).toBe(false)
-    expect(basicAuthOk(header('', ''), '', '')).toBe(false)
-    expect(basicAuthOk(header('reviewer', 'sekrit'), '', '')).toBe(false)
+  it('fails closed when the expected password is unset', () => {
+    const known = OTP_ADDRESSES[0].address
+    expect(resolveAuthorisedAddress(header(known, ''), '')).toBe(null)
+    expect(resolveAuthorisedAddress(header(known, 'anything'), '')).toBe(null)
   })
 })
 
@@ -372,9 +389,12 @@ describe('OTP_ADDRESSES', () => {
     expect(new Set(keys).size).toBe(OTP_ADDRESSES.length)
   })
 
-  it('labels every address for the page', () => {
-    for (const { label } of OTP_ADDRESSES) {
-      expect(label.trim().length).toBeGreaterThan(0)
+  // The address doubles as the page's Basic-auth username, so it has to be
+  // something a reviewer can be told to type — which it is, because it is
+  // the same string they already type on Union's sign-in screen.
+  it('uses addresses that are usable as usernames', () => {
+    for (const { address } of OTP_ADDRESSES) {
+      expect(address).toMatch(/^[^\s:]+@[^\s:]+$/)
     }
   })
 })
