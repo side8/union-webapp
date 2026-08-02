@@ -4,7 +4,8 @@ import { env } from 'cloudflare:workers'
 import {
   basicAuthOk,
   describeAge,
-  REVIEWER_OTP_KEY,
+  OTP_ADDRESSES,
+  otpKeyFor,
   secretMatches,
   type StoredOtp,
 } from '../../lib/reviewer-otp'
@@ -13,13 +14,25 @@ import {
 // this one opts out, same as /share/[token].
 export const prerender = false
 
-// Google Play reviewer sign-in code.
+// Store-review and demo sign-in codes.
 //
-// Union has no password (sign-in emails a 6-digit code), and Play forbids
+// Union has no password (sign-in emails a one-time code), and Play forbids
 // reviewers using their own accounts while requiring credentials that are
 // reusable and bypass a one-time PIN. Play's documented escape hatch for a
-// credential that isn't a plain string is a static URL — this is it. See
+// credential that isn't a plain string is a static URL — this is it. Apple
+// App Review and the demo/screenshots account use the same mechanism. See
 // ../../lib/reviewer-otp.ts for the full rationale.
+//
+// ONE page serves all three addresses rather than one page each: it is one
+// token, one password, and one Email Routing target to keep working, and a
+// reviewer who mistypes the address still finds their code on the page they
+// were given. The tradeoff is that a holder of this link can read all three
+// codes — acceptable because every one of them is a Union-owned account
+// with no real user data, and the page is already behind two gates.
+//
+// The URL path stays /play-review/* even though it now serves more than
+// Play: the value is pasted into store consoles and written down in the
+// runbooks, and a rename would silently break whichever one was missed.
 //
 // The URL secret is the only guard, so it must be a long random value held
 // in REVIEWER_PAGE_TOKEN. A missing secret makes secretMatches() reject
@@ -57,16 +70,32 @@ const passwordOk =
     bindings.REVIEWER_PAGE_PASSWORD ?? '',
   )
 
-let stored: StoredOtp | null = null
+// One read per address. They are independent slots, so a miss on one must
+// not hide the others.
+let codes: { address: string; label: string; stored: StoredOtp | null }[] = []
 let unavailable = false
 
 if (passwordOk) {
   try {
-    stored = await bindings.REVIEWER_OTP!.get<StoredOtp>(REVIEWER_OTP_KEY, 'json')
+    codes = await Promise.all(
+      OTP_ADDRESSES.map(async ({ address, label }) => ({
+        address,
+        label,
+        stored: await bindings.REVIEWER_OTP!.get<StoredOtp>(
+          otpKeyFor(address),
+          'json',
+        ),
+      })),
+    )
   } catch {
     // Never 500 in front of a reviewer mid-review — show the waiting state
     // and let them retry, exactly as if no code had arrived yet.
     unavailable = true
+    codes = OTP_ADDRESSES.map(({ address, label }) => ({
+      address,
+      label,
+      stored: null,
+    }))
   }
 }
 
@@ -111,29 +140,38 @@ Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
 
     {passwordOk && (
       <section>
-        <h1>Union sign-in code</h1>
+        <h1>Union sign-in codes</h1>
         <p class="lede">
-          For reviewing Union.
-          Enter <strong>reviewer.play@unionwith.app</strong> on the app’s
-          sign-in screen, then use the code below.
+          Enter your email address on the app’s sign-in screen, then read the
+          matching code below.
         </p>
 
-        {stored && (
-          <>
-            <p class="code" aria-label={`Sign-in code ${stored.code.split('').join(' ')}`}>
-              {stored.code}
-            </p>
-            <p class="meta">Received {describeAge(stored.receivedAt)}.</p>
-          </>
-        )}
+        {codes.map(({ address, label, stored }) => (
+          <article class="slot">
+            <h2>{label}</h2>
+            <p class="address">{address}</p>
 
-        {!stored && (
-          <p class="waiting">
-            {unavailable
-              ? 'The code service is briefly unavailable. Please reload in a few seconds.'
-              : 'No code yet. Request one in the app, then reload this page.'}
-          </p>
-        )}
+            {stored && (
+              <>
+                <p
+                  class="code"
+                  aria-label={`Sign-in code ${stored.code.split('').join(' ')}`}
+                >
+                  {stored.code}
+                </p>
+                <p class="meta">Received {describeAge(stored.receivedAt)}.</p>
+              </>
+            )}
+
+            {!stored && (
+              <p class="waiting">
+                {unavailable
+                  ? 'The code service is briefly unavailable. Please reload in a few seconds.'
+                  : 'No code yet. Request one in the app, then reload this page.'}
+              </p>
+            )}
+          </article>
+        ))}
 
         <p class="meta">
           Codes expire after a short time. If sign-in fails, request a new
@@ -156,6 +194,25 @@ Astro.response.headers.set('Cache-Control', 'private, no-store, max-age=0')
   }
   .lede {
     margin-bottom: 2rem;
+  }
+  /* Each address is a distinct block so three codes on one page can never
+     be read off against the wrong address. */
+  .slot {
+    padding: 1.25rem 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
+  .slot h2 {
+    font-size: 1rem;
+    margin: 0;
+  }
+  .address {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin: 0.15rem 0 0.5rem;
+    /* A long address must wrap rather than push the page sideways on a
+       phone, which is what a reviewer is holding. */
+    overflow-wrap: anywhere;
   }
   /* Large, spaced, tabular: the reviewer is copying this by eye onto a
      phone, so legibility matters more than styling. */

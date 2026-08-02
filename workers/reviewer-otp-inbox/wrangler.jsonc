@@ -1,13 +1,17 @@
 {
-  // Email Worker for the Google Play reviewer sign-in code.
+  // Email Worker for the store-review and demo sign-in codes.
   //
   // Deploy from THIS directory:  npx wrangler deploy
   // (the root wrangler.jsonc is the Astro app — a different Worker.)
   //
-  // After the first deploy, wire the ingress in the Cloudflare dashboard:
+  // Each address in OTP_ADDRESSES (src/lib/reviewer-otp.ts) needs its OWN
+  // routing rule in the Cloudflare dashboard — there is no wildcard, and an
+  // address with no rule simply never reaches this Worker, which looks
+  // identical to "no code has arrived yet" on the page:
   //   Email > Email Routing > Routing rules > Create
   //     Custom address: reviewer.play@unionwith.app
   //     Action:         Send to a Worker -> union-reviewer-otp-inbox
+  //   ...and the same for reviewer.apple@ and hannah@.
   //
   // The KV namespace below was created with:
   //   npx wrangler kv namespace create REVIEWER_OTP
