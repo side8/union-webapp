@@ -16,7 +16,7 @@
     "typecheck": "wrangler types && astro check"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.1.5",
+    "@astrojs/cloudflare": "^14.1.7",
     "@supabase/supabase-js": "^2.111.0",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.1.6",
