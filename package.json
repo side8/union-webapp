@@ -19,7 +19,7 @@
     "@astrojs/cloudflare": "^14.2.5",
     "@supabase/supabase-js": "^2.112.4",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.2.4",
+    "astro": "^7.2.9",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
